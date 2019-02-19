@@ -145,7 +145,8 @@ Item {
 
                     property var files : LiveFileMonitorSingleton.files
                     onFilesChanged: {
-                        loaderLocation.refresh(listModel.get(currentIndex))
+                        if (liveCodingCheckBox.checked)
+                            loaderLocation.refresh(listModel.get(currentIndex))
                     }
 
                     function findIndexFor(name)
@@ -203,7 +204,7 @@ Item {
                     text: "Live Coding:"
                 }
                 CheckBox {
-                    id : checkBoxEditting
+                    id : liveCodingCheckBox
                     Layout.alignment: Qt.AlignVCenter
                 }
             }
