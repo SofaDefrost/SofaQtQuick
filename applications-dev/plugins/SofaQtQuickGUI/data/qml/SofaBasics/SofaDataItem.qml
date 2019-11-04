@@ -123,6 +123,7 @@ Item {
                 checked: sofaData ? null !== sofaData.getParent() : false
                 onCheckedChanged: {
                     linkTextField.forceActiveFocus()
+                    linkButtonImage.source = linkButtonImage.setLinkIcon(sofaData.getParent()?sofaData.getParent().linkPath: "")
                 }
 
                 activeFocusOnTab: false
@@ -133,7 +134,15 @@ Item {
                 Image {
                     id: linkButtonImage
                     anchors.fill: parent
-                    source: linkButton.checked ? "qrc:/icon/linkValid.png" : "qrc:/icon/link.png"
+                    source: setLinkIcon(sofaData.getParent()?sofaData.getParent().linkPath: "")
+                    function setLinkIcon(linkPath) {
+                        if (linkButton.checked && linkPath !== "")
+                            return "qrc:/icon/linkValid.png"
+                        else if (linkButton.checked && linkPath === "")
+                            return "qrc:/icon/linkValid.png"
+                        else
+                            return "qrc:/icon/link.png"
+                    }
                 }
             }
         }

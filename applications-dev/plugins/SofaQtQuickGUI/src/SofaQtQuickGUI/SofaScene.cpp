@@ -1574,6 +1574,8 @@ void SofaScene::onMouseMove(double x, double y)
     if(!isReady())
         return;
 
+    emit mouseMove(x, y);
+
     MouseEvent event(MouseEvent::Move, x, y);
     sofaRootNode()->propagateEvent(sofa::core::ExecParams::defaultInstance(), &event);
 }
@@ -1582,6 +1584,8 @@ void SofaScene::onMousePressed(int button, double x, double y)
 {
     if(!isReady())
         return;
+
+    emit mousePressed(button, x, y);
 
     MouseEvent::State s;
     switch(button)
@@ -1606,6 +1610,8 @@ void SofaScene::onMousePressed(int button, double x, double y)
 
 void SofaScene::onMouseReleased(int button, double x, double y)
 {
+    emit mouseReleased(button, x, y);
+
     MouseEvent::State s;
     switch(button)
     {
@@ -1631,6 +1637,7 @@ void SofaScene::onKeyPressed(char key)
     if(!isReady())
         return;
 
+    emit keyPressed(key);
     sofa::core::objectmodel::KeypressedEvent keyEvent(key);
     sofaRootNode()->propagateEvent(sofa::core::ExecParams::defaultInstance(), &keyEvent);
 }
@@ -1640,6 +1647,7 @@ void SofaScene::onKeyReleased(char key)
     if(!isReady())
         return;
 
+    emit keyReleased(key);
     sofa::core::objectmodel::KeyreleasedEvent keyEvent(key);
     sofaRootNode()->propagateEvent(sofa::core::ExecParams::defaultInstance(), &keyEvent);
 }

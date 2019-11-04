@@ -199,6 +199,8 @@ bool SofaData::isSet() const
 
 bool SofaData::isReadOnly() const
 {
+    if (rawData()->getParent())
+        return true;
     return rawData()->isReadOnly();
 }
 

@@ -333,7 +333,7 @@ bool setDataValueFromQVariant(BaseData* data, const QVariant& value)
 
 QVariantMap& convertDataInfoToProperties(const BaseData* data, QVariantMap& properties)
 {
-    properties.insert("readOnly", data->isReadOnly());
+    properties.insert("readOnly", data->getParent() || data->isReadOnly());
 
     /// DataFilename are use to sœœtores path to files.
     auto aDataFilename = dynamic_cast<const DataFileName*>(data) ;

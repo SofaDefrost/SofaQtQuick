@@ -279,6 +279,13 @@ signals:
     void stepEnd();
     void reseted();
 
+    void keyPressed(char key);
+    void keyReleased(char key);
+
+    void mouseMove(double x, double y);
+    void mousePressed(int button, double x, double y);
+    void mouseReleased(int button, double x, double y);
+
 private slots:
     void open();
     void loadCppGraph();
