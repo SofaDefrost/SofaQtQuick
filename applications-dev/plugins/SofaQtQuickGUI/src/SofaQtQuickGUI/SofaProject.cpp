@@ -117,7 +117,7 @@ void SofaProject::setRootDir(const QUrl& rootDir)
         m_projectSettings->sync();
         delete m_projectSettings;
     }
-    m_projectSettings = new QSettings(rootDir.path()+"/"+QFileInfo(rootDir.path()).baseName()+".ini", QSettings::IniFormat);
+    m_projectSettings = new QSettings(rootDir.path()+"/.runSofa2.ini", QSettings::IniFormat);
 
     m_rootDir = rootDir;
     m_assets.clear();
@@ -136,7 +136,7 @@ void SofaProject::setRootDir(const QUrl& rootDir)
     if (lastOpened != "" && QFileInfo(lastOpened).exists())
         url = lastOpened;
     else if (QFileInfo(url.path()).exists())
-        m_projectSettings->setValue("lastOpened", url.path());
+        m_projectSettings->setValue("lastOpened", dir.relativeFilePath(url.path()));
     if (m_currentScene)
         m_currentScene->setSource(url);
 
@@ -247,7 +247,12 @@ void SofaProject::exportProject()
     QString relpath = QDir(getRootDir().toLocalFile()).relativeFilePath(file.path());
 
     // Zip the current dir into the given file archive
-    process.start("/usr/bin/zip", QStringList() << "-r" << relpath << ".");
+    process.start("/usr/bin/zip", QStringList() << "-r" << relpath << "."
+                  << "-x" << "*.pyc*"
+                  << "-x" << "*\\#*\\#*"
+                  << "-x" << "*\\~*"
+                  << "-x" << "*__pycache__*"
+                  << "-x" << "*.backup*");
     process.waitForFinished(-1);
     QApplication::restoreOverrideCursor();
 }
@@ -352,9 +357,10 @@ void SofaProject::removeDirEntries(DirectoryAsset& folder)
                 auto t = m_assets[cfinfo.absoluteFilePath()]->getTypeString().replace(" ", "_");
                 if (m_projectSettings)
                 {
+                    auto relpath = QDir(getRootDirPath()).relativeFilePath(cfinfo.absoluteFilePath());
                     m_projectSettings->beginGroup("assets");
-                    m_projectSettings->setValue(t, m_projectSettings->value(t,"").toString().replace(";"+cfinfo.absoluteFilePath(), ""));
-                    m_projectSettings->setValue("scenes", m_projectSettings->value("scenes","").toString().replace(";"+cfinfo.absoluteFilePath(), ""));
+                    m_projectSettings->setValue(t, m_projectSettings->value(t,"").toString().replace(";"+relpath, ""));
+                    m_projectSettings->setValue("scenes", m_projectSettings->value("scenes","").toString().replace(";"+relpath, ""));
                     m_projectSettings->endGroup();
                 }
                 m_assets.remove(cfinfo.absoluteFilePath());
@@ -375,7 +381,8 @@ bool SofaProject::isFileExcluded(const QFileInfo &finfo)
             || finfo.fileName() == "__pycache__"  // cached python folder
             || finfo.fileName().endsWith(".pyc")  // precompiled python scripts
             || (finfo.fileName().startsWith("#") && finfo.fileName().endsWith("#")) // autosaved emacs files
-            || finfo.fileName().endsWith("~");  // backup emacs files
+            || finfo.fileName().endsWith("~")
+            || finfo.fileName().endsWith(".backup");  // QtCreator backup files
 }
 
 void SofaProject::scan(const QUrl& folder)
@@ -406,8 +413,9 @@ void SofaProject::scan(const QFileInfo& file)
         auto t = m_assets[filePath]->isScene() ? "scenes" : m_assets[filePath]->getTypeString().replace(" ", "_");
         if (m_projectSettings)
         {
+            auto relpath = QDir(getRootDirPath()).relativeFilePath(filePath);
             m_projectSettings->beginGroup("assets");
-            m_projectSettings->setValue(t, m_projectSettings->value(t,"").toString().replace(";"+filePath, "")+";"+filePath);
+            m_projectSettings->setValue(t, m_projectSettings->value(t,"").toString().replace(";"+relpath, "")+";"+relpath);
             m_projectSettings->endGroup();
         }
         return;
@@ -470,7 +478,7 @@ QString SofaProject::createProject(const QUrl& dir)
         m_projectSettings->sync();
         delete m_projectSettings;
     }
-    m_projectSettings = new QSettings(dir.path()+"/"+QFileInfo(dir.path()).baseName()+".ini", QSettings::IniFormat);
+    m_projectSettings = new QSettings(dir.path()+"/.runSofa2.ini", QSettings::IniFormat);
 
     QString fileName = dir.path() + "/scenes/" + QFileInfo(dir.path()).baseName() + ".py";
     QString scriptContent = readScriptTemplate(QFileInfo(dir.path()).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyScene.py"));

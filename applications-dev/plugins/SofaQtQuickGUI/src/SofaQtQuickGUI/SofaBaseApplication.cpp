@@ -1010,7 +1010,7 @@ bool SofaBaseApplication::Initialization()
 }
 
 void SofaBaseApplication::InitOpenGL()
-{    
+{
     QOffscreenSurface* offScreenSurface = new QOffscreenSurface();
     offScreenSurface->create();
     if(!QOpenGLContext::currentContext())
@@ -1150,7 +1150,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
 
     QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
     app.addLibraryPath(QCoreApplication::applicationDirPath() + "/../lib/");
-    
+
     // initialise paths
     SofaBaseApplication::UseDefaultSofaPath();
 
@@ -1173,7 +1173,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
     QCommandLineOption widthOption(QStringList() << "width", "Window width", "pixels");
     QCommandLineOption heightOption(QStringList() << "height", "Window height", "pixels");
     QCommandLineOption logTimeOption(QStringList() << "log", "Log time during simulation");
-    
+
     parser.addOption(sceneOption);
     parser.addOption(projectOption);
     parser.addOption(guiConfigOption);
@@ -1182,7 +1182,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
     parser.addOption(widthOption);
     parser.addOption(heightOption);
     parser.addOption(logTimeOption);
-    
+
     parser.addVersionOption();
     parser.addHelpOption();
 
