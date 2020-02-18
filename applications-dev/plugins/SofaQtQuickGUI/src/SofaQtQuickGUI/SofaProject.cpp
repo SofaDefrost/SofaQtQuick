@@ -587,7 +587,7 @@ QString SofaProject::createTemplateFile(const QString& directory, const QString&
     if (templateType == "Canvas")
         extension ="qml";
 
-    QFile file(getSaveFile("New " + templateType, directory, 0, "Asset file (*." + extension + ")").path());
+    QFile file(getSaveFile("New " + templateType, QUrl(directory).toLocalFile(), 0, "Asset file (*." + extension + ")").path());
     if (file.open(QIODevice::WriteOnly))
     {
 
