@@ -21,11 +21,8 @@ endif ()
 #NodeEditor
 #option(SOFAGUIQT_ENABLE_NODEGRAPH "Build the Node graph representation. NodeEditor library is needed." OFF)
 #if (SOFAGUIQT_ENABLE_NODEGRAPH)
-#set(NODEEDITOR_LIBRARY "/usr/local/lib/libnodes.so")
-set(NODEEDITOR_LIBRARY "/Users/bcarrez/git/nodeeditor/build/lib/libnodes.a")
-#set(NODEEDITOR_INCLUDE_PATH "/usr/local/include")
-set(NODEEDITOR_INCLUDE_PATH "/Users/bcarrez/git/nodeeditor/build/include")
-
+FIND_LIBRARY(NODEEDITOR_LIBRARY NAMES nodes HINTS /usr/local/lib ../../../../../nodeeditor/build/lib)
+FIND_PATH(NODEEDITOR_INCLUDE_PATH nodes/internal/moc_Node.cpp HINTS /usr/local/include ../../../../../nodeeditor/build/include)
 find_package(NodeEditor REQUIRED)
 #endif()
 #sofa_set_01(SOFAGUIQT_HAVE_NODEEDITOR VALUE ${SOFAGUIQT_ENABLE_NODEGRAPH} BOTH_SCOPES)
