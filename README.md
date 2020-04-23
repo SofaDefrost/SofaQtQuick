@@ -12,7 +12,7 @@ $ cd runsofa2
 $ mkdir plugins
 $ cd plugins
 $ git clone git@github.com:SofaDefrost/SofaQtQuick.git -b macos
-$ git clone git@github.com:SofaDefrost/plugin.SofaPython3.git
+$ git clone git@github.com:SofaDefrost/plugin.SofaPython3.git -b fix_for_SofaQtQuick
 $ cd ..
 $ git clone git@github.com:SofaDefrost/sofa.git -b SofaQtQuickGUI
 $ git clone git@github.com:paceholder/nodeeditor.git
@@ -36,6 +36,11 @@ Better take brew's version of qt5 instead of downloading it form their website
 ```
 $ brew install qt
 ```
+### ccache (optionnal)
+
+```
+$ brew install ccache
+```
 
 ### nodeeditor
 
@@ -55,7 +60,7 @@ $ cd ../..
 ```
 $ mkdir build
 $ cd build
-$ cmake ../sofa -DSOFA_EXTERNAL_DIRECTORIES="../plugins" -DAPPLICATION_RUNSOFA2=ON -G "CodeBlocks - Ninja"
+$ cmake ../sofa -DSOFA_EXTERNAL_DIRECTORIES="../plugins" -DAPPLICATION_RUNSOFA2=ON -DSOFA_USE_CCACHE=ON -G "CodeBlocks - Ninja"
 $ ninja
 ```
 
