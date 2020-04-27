@@ -7,11 +7,12 @@ find_package(SofaFramework REQUIRED)
 find_package(SofaOpenglVisual REQUIRED)
 find_package(SofaGeneral REQUIRED)
 find_package(SofaCommon REQUIRED)
+find_package(SofaBase REQUIRED)
 find_package(QmlUI REQUIRED)
 
 find_package(SofaPython3 QUIET)
 if (SofaPython3_FOUND)
-    set (SOFAPYTHON_LIBRARY SofaPython3)
+    set (SOFAPYTHON_LIBRARY SofaPython3::Plugin)
     include_directories(${SofaPython3_INCLUDE_DIRS})
 else()
     message(FATAL_ERROR "SofaPython3 is required to compile SofaQtQuick")
@@ -316,11 +317,8 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 endif ()
 
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${MOC_FILES} ${SOURCE_FILES} ${QRC_FILES} ${RESOURCE_FILES} ${QML_FILES} ${CONFIG_FILES} ${PYTHON_FILES} ${EXTRA_FILES} ${ASSET_TEMPLATES})
-#target_link_libraries(${PROJECT_NAME} PUBLIC ${SOFAPYTHON_LIBRARY} SofaOpenglVisual SofaGeneralLoader SofaLoader SofaSimulationGraph SofaGraphComponent SofaBoundaryCondition SofaComponentBase SofaMeshCollision
-#    Qt5::Core Qt5::Gui Qt5::Widgets Qt5::QuickControls2 Qt5::Qml Qt5::Quick Qt5::WebEngine Qt5::Charts stdc++fs QmlUI)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${SOFAPYTHON_LIBRARY} SofaOpenglVisual SofaGeneralLoader SofaLoader SofaSimulationGraph SofaGraphComponent SofaBoundaryCondition SofaComponentBase SofaMeshCollision
-    Qt5::Core Qt5::Gui Qt5::Widgets Qt5::QuickControls2 Qt5::Qml Qt5::Quick Qt5::WebEngine Qt5::Charts QmlUI)
-#target_link_libraries(${PROJECT_NAME} PRIVATE assimp)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ${SOFAPYTHON_LIBRARY} SofaOpenglVisual SofaGeneralLoader SofaLoader SofaSimulationGraph SofaGraphComponent SofaBoundaryCondition SofaBase SofaMeshCollision Qt5::Core Qt5::Gui Qt5::Widgets Qt5::QuickControls2 Qt5::Qml Qt5::Quick Qt5::WebEngine Qt5::Charts QmlUI)
 
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>")
 target_include_directories(${PROJECT_NAME} PUBLIC "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
@@ -328,7 +326,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE "$<BUILD_INTERFACE:${ASSIMP_I
 
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${NODEEDITOR_LIBRARY})
-sofa_install_libraries(LIBRARIES ${NODEEDITOR_LIBRARY})
+sofa_install_libraries(PATHS ${NODEEDITOR_LIBRARY})
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${NODEEDITOR_INCLUDE_PATH}>")
 
 file(COPY     ${SCRIPT_TEMPLATES}     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/scripts)

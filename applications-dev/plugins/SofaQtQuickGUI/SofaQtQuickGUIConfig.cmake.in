@@ -3,18 +3,17 @@
 @PACKAGE_INIT@
 
 find_package(SofaMisc REQUIRED)
-find_package(SofaPython QUIET)
 find_package(SofaPython3 QUIET)
 find_package(QmlUI REQUIRED)
 
-if(NOT SofPython3_FOUND AND NOT SofaPython_FOUND)
+if(NOT SofPython3_FOUND)
   find_package(SofaPython3 REQUIRED)
 endif ()
 
 find_package(Qt5 COMPONENTS Core Gui Widgets Quick QuickControls2 Qml REQUIRED)
 
 if(NOT TARGET SofaQtQuickGUI)
-	include("${CMAKE_CURRENT_LIST_DIR}/SofaQtQuickGUITargets.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/SofaQtQuickGUITargets.cmake")
 endif()
 
 check_required_components(SofaQtQuickGUI)

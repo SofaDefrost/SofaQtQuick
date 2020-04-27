@@ -42,7 +42,7 @@ class SofaData;
 class QmlDDGNode : public sofa::core::objectmodel::DDGNode
 {
 public:
-    virtual void notifyEndEdit(const sofa::core::ExecParams* params = nullptr) override;
+    virtual void notifyEndEdit() override;
 
     /// Update this value
     void update() override ;

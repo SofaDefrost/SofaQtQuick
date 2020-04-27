@@ -32,6 +32,7 @@ if(WIN32)
 	endif()
 endif()
 
+find_package(SofaQtQuickGUI REQUIRED)
 
 find_package(Qt5 COMPONENTS Core Gui Widgets Quick QuickControls2 Qml WebView REQUIRED PATHS "${SOFA-EXTERNAL_QT5_PATH}")
 # make sure to use QT > 5.0
@@ -50,15 +51,9 @@ add_definitions(${Qt5Qml_DEFINITIONS})
 add_definitions(${Qt5Quick_DEFINITIONS})
 add_definitions(${Qt5WebView_DEFINITIONS})
 
-find_package(SofaQtQuickGUI REQUIRED)
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-    # Sized deallocaion is not enabled by default under clang after c++14
-    set(CMAKE_CXX_FLAGS "-fsized-deallocation")
-endif ()
-
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    # Sized deallocaion is not enabled by default under clang after c++14
-    set(CMAKE_CXX_FLAGS "-fsized-deallocation")
+   # Sized deallocaion is not enabled by default under clang after c++14
+   set(CMAKE_CXX_FLAGS "-fsized-deallocation")
 endif ()
 
 qt5_wrap_cpp(MOC_FILES ${HEADER_FILES}) # do not use "set(CMAKE_AUTOMOC ON)" since all the mocced files will be compiled by a single compilation unit leading to a "out of heap space" issue on MSVC
