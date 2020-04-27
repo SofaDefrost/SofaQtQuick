@@ -36,6 +36,11 @@ Better take brew's version of qt5 instead of downloading it form their website
 ```
 $ brew install qt
 ```
+### pybind
+
+```
+$ brew install pybind11
+```
 ### ccache (optionnal)
 
 ```
