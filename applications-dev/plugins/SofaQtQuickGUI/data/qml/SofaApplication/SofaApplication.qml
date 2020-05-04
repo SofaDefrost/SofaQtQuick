@@ -342,7 +342,7 @@ Item //
 
             uiIds = uiIds.replace(";" + uiId.toString() + ";", ";");
 
-            root.clearSettingGroup("ui_" + uiId.toString());
+            SofaBaseApplicationSingleton.clearSettingGroup("ui_" + uiId.toString());
         }
 
         function replace(previousUiId, uiId) {

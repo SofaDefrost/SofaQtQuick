@@ -3,6 +3,7 @@ import QtQuick.Window 2.12
 import QtQuick.Layouts 1.12
 import QtQuick.Controls 1.4
 import SofaBasics 1.0
+import SofaApplication 1.0
 
 TabView {
     id: root
@@ -14,11 +15,11 @@ TabView {
             RowLayout {
                 anchors.fill: parent
                 Rectangle {
-                    id: plop
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     border.color: "black"
                     color: "#2a2b2c"
+
                     ListView {
                         id: listview
                         anchors.fill: parent
@@ -33,7 +34,7 @@ TabView {
                                 path: "~/.config/runSofa2/"
                             }
                             ListElement {
-                                path: "%SOFA_INSTALL_DIR%/share/runSofa2/config/"
+                                path: "%SOFA_INSTALL_DIR%/bin/config/"
                             }
                         }
                         delegate: Rectangle {
@@ -49,10 +50,40 @@ TabView {
                                 color: "#ABABAB"
                             }
                             MouseArea {
+                                id: mouseArea
+                                Menu {
+                                    id: contextMenu
+                                    visible: false
+                                    MenuItem {
+                                        text: "Copy full path"
+                                        enabled: false
+                                    }
+                                    MenuItem {
+                                        text: "Open terminal here"
+                                        onTriggered: {
+                                            SofaApplication.openInTerminal(path)
+                                        }
+                                    }
+                                    MenuItem {
+                                        text: "Show containing folder"
+                                        onTriggered: {
+                                            SofaApplication.openInExplorer(path)
+                                        }
+                                    }
+                                }
+
                                 anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 onClicked: {
                                     listview.currentIndex = index
-
+                                    if (mouse.button === Qt.RightButton)
+                                    {
+                                        forceActiveFocus()
+                                        var pos = SofaApplication.getIdealPopupPos(contextMenu, mouseArea)
+                                        contextMenu.x = mouse.x + pos[0]
+                                        contextMenu.y = mouse.y + pos[1]
+                                        contextMenu.open()
+                                    }
                                 }
                             }
                         }
@@ -84,6 +115,7 @@ TabView {
                         implicitWidth: parent.width
                         text: "Move down"
                     }
+
                     Rectangle {
                         width: 1
                         Layout.fillHeight: true
