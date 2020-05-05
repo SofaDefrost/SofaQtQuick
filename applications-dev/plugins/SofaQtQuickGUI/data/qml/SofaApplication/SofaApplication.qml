@@ -110,6 +110,11 @@ Item //
         return SofaBaseApplicationSingleton.inspectorsDirectory();
     }
 
+    function callbacksDirectory()
+    {
+        return SofaBaseApplicationSingleton.callbacksDirectory();
+    }
+
     function createInspector(file)
     {
         return SofaBaseApplicationSingleton.createInspector(file);
