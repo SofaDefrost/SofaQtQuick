@@ -13,16 +13,21 @@ Item {
     property TemplateAsset selectedAsset
 
     GroupBox {
-        width: root.parent.width
+        anchors.fill: parent
         title: "Canvas"
         buttonIconSource: "qrc:/icon/edit.png"
         onButtonClicked: {
             selectedAsset.openThirdParty()
         }
 
-        Loader {
+        Rectangle {
             anchors.fill: parent
-            source: selectedAsset.path
+            border.color: "black"
+            color: "#2a2b2c"
+
+            Loader {
+                source: selectedAsset.path
+            }
         }
     }
 }
