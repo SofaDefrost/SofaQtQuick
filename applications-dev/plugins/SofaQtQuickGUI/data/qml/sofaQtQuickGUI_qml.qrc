@@ -134,7 +134,6 @@
         <file>SofaViews/ExampleView.qml</file>
         <file>SofaWidgets/AssetView.qml</file>
         <file>AssetView.qml</file>
-        <file>CustomInspectorWidgets/MeshLoaderInspector.qml</file>
         <file>CustomInspectorWidgets/BaseInspector.qml</file>
         <file>CustomInspectorWidgets/qmldir</file>
         <file>SofaViews/CamView.qml</file>
@@ -155,5 +154,10 @@
         <file>SofaBasics/VerticalScrollbar.qml</file>
         <file>SofaBasics/Slider.qml</file>
         <file>SofaWidgets/Profiler.qml</file>
+        <file>SofaWidgets/Preferences.qml</file>
+        <file>SofaWidgets/ConfigPreferences.qml</file>
+        <file>SofaWidgets/ExternalToolsPreferences.qml</file>
+        <file>SofaWidgets/TemplatesPreferences.qml</file>
+        <file>SofaBasics/TabView.qml</file>
     </qresource>
 </RCC>

@@ -85,6 +85,46 @@ Item //
         SofaBaseApplicationSingleton.copyFile(src, dest)
     }
 
+    function fileExists(file)
+    {
+        return SofaBaseApplicationSingleton.fileExists(file);
+    }
+
+    function binaryDirectory()
+    {
+        return SofaBaseApplicationSingleton.binaryDirectory();
+    }
+
+    function templatesDirectory()
+    {
+        return SofaBaseApplicationSingleton.templatesDirectory();
+    }
+
+    function assetsDirectory()
+    {
+        return SofaBaseApplicationSingleton.assetsDirectory();
+    }
+
+    function inspectorsDirectory()
+    {
+        return SofaBaseApplicationSingleton.inspectorsDirectory();
+    }
+
+    function callbacksDirectory()
+    {
+        return SofaBaseApplicationSingleton.callbacksDirectory();
+    }
+
+    function createInspector(file)
+    {
+        return SofaBaseApplicationSingleton.createInspector(file);
+    }
+
+    function createAssetTemplate(file)
+    {
+        return SofaBaseApplicationSingleton.createAssetTemplate(file);
+    }
+
     /// Returns the absolute position of the mouse in a mouseArea
     /// Takes a MouseArea as argument
     function getAbsolutePosition(node) {
@@ -307,7 +347,7 @@ Item //
 
             uiIds = uiIds.replace(";" + uiId.toString() + ";", ";");
 
-            root.clearSettingGroup("ui_" + uiId.toString());
+            SofaBaseApplicationSingleton.clearSettingGroup("ui_" + uiId.toString());
         }
 
         function replace(previousUiId, uiId) {

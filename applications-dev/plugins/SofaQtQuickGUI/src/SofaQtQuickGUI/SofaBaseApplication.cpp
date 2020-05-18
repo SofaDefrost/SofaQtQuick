@@ -201,6 +201,13 @@ void SofaBaseApplication::openInEditor(const QString& fullpath, const int lineno
 
 
     QString path = QFileInfo(fullpath).absoluteFilePath();
+
+    QFileInfo finfo(path);
+    if (!finfo.exists()) {
+        QFile file(path);
+        file.open(QIODevice::NewOnly);
+        if (file.isOpen()) file.close();
+    }
     QString line = std::to_string(lineno).c_str();
 
     QString editor = settings.value("DefaultEditor").toString();
@@ -357,6 +364,12 @@ bool SofaBaseApplication::copyFile(const QString& source, const QString& destina
 
         return QFile::copy(source, destination);
     }
+}
+
+bool SofaBaseApplication::fileExists(const QString &filepath)
+{
+    QFileInfo finfo(filepath);
+    return finfo.exists();
 }
 
 QImage SofaBaseApplication::screenshotComponent(QQuickItem* item, const QSize& forceSize) const
@@ -582,6 +595,118 @@ QString SofaBaseApplication::binaryDirectory() const
 {
     return QCoreApplication::applicationDirPath() + "/";
 }
+
+QString SofaBaseApplication::templatesDirectory() const
+{
+    return QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/");
+}
+
+QString SofaBaseApplication::inspectorsDirectory() const
+{
+    QString templatesDir = templatesDirectory();
+    QDir d(templatesDir);
+    if (!d.exists("inspectors"))
+        d.mkdir("inspectors");
+    return templatesDir + "inspectors/";
+}
+
+QString SofaBaseApplication::assetsDirectory() const
+{
+    QString templatesDir = templatesDirectory();
+    QDir d(templatesDir);
+    if (!d.exists("assets")) d.mkdir("assets");
+    return templatesDir + "assets/";
+}
+
+QString SofaBaseApplication::callbacksDirectory() const
+{
+    QString templatesDir = templatesDirectory();
+    QDir d(templatesDir);
+
+    if (!d.exists("callbacks")) d.mkdir("callbacks");
+    sofapython3::PythonEnvironment::addPythonModulePath(templatesDir.toStdString() + "callbacks/");
+    return templatesDir + "callbacks/";
+}
+
+bool SofaBaseApplication::createInspector(QString file)
+{
+    if (!fileExists(file)) {
+        QFile f(file);
+        f.open(QIODevice::WriteOnly);
+        if (f.isOpen()) {
+            f.write("import QtQuick 2.0                              \n"
+                    "import CustomInspectorWidgets 1.0               \n"
+                    "                                                \n"
+                    "CustomInspector {                               \n"
+                    "    dataDict: {                                 \n"
+                    "        \"Base\": [\"name\",\"componentState\"] \n"
+                    "    }                                           \n"
+                    "}                                               \n"
+                    );
+            f.close();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SofaBaseApplication::createAssetTemplate(QString file)
+{
+    if (!fileExists(file)) {
+        QFile f(file);
+        f.open(QIODevice::WriteOnly);
+        if (f.isOpen()) {
+            f.write("#!/usr/bin/python3                                                                                                          \n"
+                    "                                                                                                                            \n"
+                    "import Sofa.Core                                                                                                            \n"
+                    "import subprocess                                                                                                           \n"
+                    "import os                                                                                                                   \n"
+                    "                                                                                                                            \n"
+                    "# type_string: short asset description string                                                                               \n"
+                    "type_string = 'Unknown file type'                                                                                           \n"
+                    "                                                                                                                            \n"
+                    "# icon_path: url of the asset icon                                                                                          \n"
+                    "icon_path = 'qrc:/icon/ICON_FILE_BLANK.png'                                                                                 \n"
+                    "                                                                                                                            \n"
+                    "# Used for Python scripts, determines whether it is sofa content or not                                                     \n"
+                    "is_sofa_content = False                                                                                                     \n"
+                    "                                                                                                                            \n"
+                    "# Method called to instantiate the asset in the scene graph.                                                                \n"
+                    "#def create(node, assetName, assetPath):                                                                                    \n"
+                    "#    pass                                                                                                                   \n"
+                    "                                                                                                                            \n"
+                    "# Method called to open a third party tool when clicking on 'Open in Editor'. Opens in favorite file editor by default      \n"
+                    "#def openThirdParty(assetPath):                                                                                             \n"
+                    "#    pass                                                                                                                   \n"
+                    );
+            f.close();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SofaBaseApplication::createCallback(QString file)
+{
+    if (!fileExists(file)) {
+        QFile f(file);
+        f.open(QIODevice::WriteOnly);
+        if (f.isOpen()) {
+            f.write("#!/usr/bin/python3\n"
+                    "\n"
+                    "import Sofa.Core\n"
+                    "\n"
+                    "\n"
+                    "def convert(src):\n"
+                    "    return src.value\n"
+                    );
+            f.close();
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void SofaBaseApplication::saveScreenshot(const QString& path)
 {
@@ -947,12 +1072,14 @@ void SofaBaseApplication::ApplyBackupSettings(const QString& backupSettingsPath)
 
 void SofaBaseApplication::ApplyDefaultSettings(const QString& defaultSettingsPath, const QString& backupSettingsPath)
 {
-    QString finalDefaultSettingsPath = ":/config/default.ini";
+    std::cout << "applying default settings...:" << std::endl;
+    QString finalDefaultSettingsPath = QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/layouts/default.ini");
     if(!defaultSettingsPath.isEmpty())
         finalDefaultSettingsPath = defaultSettingsPath;
 
     // copy properties of default.ini into the backup and current settings if the settings file does not exist
     QSettings defaultSettings(finalDefaultSettingsPath, QSettings::IniFormat);
+    std::cout << defaultSettings.fileName().toStdString() << std::endl;
     QSettings settings;
     settings.clear();
 
@@ -1206,7 +1333,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
     bool optionConfigFile = false;
 
     //default config file
-    QString configPath = QCoreApplication::applicationDirPath() + "/config/";
+    QString configPath = QCoreApplication::applicationDirPath() + "/config";
     //apply the app settings or use the default.ini settings if it is the first time the user launch the application or use the app.backup.ini in case of application crash
     QSettings::setPath(QSettings::Format::IniFormat, QSettings::Scope::UserScope, configPath);
 
@@ -1224,7 +1351,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
         else
         {
             //second search in the config template dir (with or without the .ini suffix)
-            QString qrcPath = ":/config/";
+            QString qrcPath = ":/config/templates/layouts/";
             QString configName = guiConfigOptionValue.section(".", 0, 0) + ".ini";
             qDebug() << qrcPath + configName;
             QFileInfo fileInfo2(qrcPath + configName);
@@ -1244,11 +1371,18 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
 
     if (optionConfigFile)
     {
-        //copy content of the given config file into the "system", as this one cant be changed later on
+        // copy content of the given layout config file into the "system" config file, under the "layout" group, as the given layout must stay read only
         QSettings optionConfigSettings(configPath, QSettings::Format::IniFormat);
         QSettings settings;
-        settings.clear();
-
+        for (auto group : settings.childGroups())
+        {
+            if (group.startsWith("ui"))
+            {
+                settings.beginGroup(group);
+                settings.remove("");
+                settings.endGroup();
+            }
+        }
         CopySettings(optionConfigSettings, settings);
     }
 

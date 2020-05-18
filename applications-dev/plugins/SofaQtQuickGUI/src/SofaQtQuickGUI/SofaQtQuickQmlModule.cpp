@@ -29,6 +29,8 @@ using sofaqtquick::Translate_Manipulator;
 using sofaqtquick::Scale_Manipulator;
 #include <SofaQtQuickGUI/Manipulators/Viewpoint_Manipulator.h>
 using sofaqtquick::Viewpoint_Manipulator;
+#include <SofaQtQuickGUI/Manipulators/Snapping_Manipulator.h>
+using sofaqtquick::Snapping_Manipulator;
 //#include <SofaQtQuickGUI/Manipulators/TranslateParticle_Manipulator.h>
 //using sofaqtquick::TranslateParticle_Manipulator;
 #include <SofaQtQuickGUI/Manipulators/Rotate_Manipulator.h>
@@ -66,7 +68,7 @@ using sofaqtquick::bindings::SofaBaseObjectList;
 #include <SofaQtQuickGUI/Models/SofaLinkCompletionModel.h>
 #include <SofaQtQuickGUI/Models/SofaInspectorDataListModel.h>
 #include <SofaQtQuickGUI/Models/SofaDisplayFlagsTreeModel.h>
-//#include <SofaQtQuickGUI/Models/CustomInspectorModel.h>
+#include <SofaQtQuickGUI/Models/SofaCameraListModel.h>
 #include <SofaQtQuickGUI/Windows/CameraView.h>
 #include <SofaQtQuickGUI/Windows/EditView.h>
 #include <SofaQtQuickGUI/Windows/AssetView.h>
@@ -283,6 +285,7 @@ void registerSofaTypesToQml(const char* /*uri*/)
     qmlRegisterType<Viewpoint_Manipulator>                              ("Viewpoint_Manipulator"                    , versionMajor, versionMinor, "Viewpoint_Manipulator");
     qmlRegisterType<Rotate_Manipulator>                              ("Rotate_Manipulator"                    , versionMajor, versionMinor, "Rotate_Manipulator");
     qmlRegisterType<Scale_Manipulator>                              ("Scale_Manipulator"                    , versionMajor, versionMinor, "Scale_Manipulator");
+    qmlRegisterType<Snapping_Manipulator>                              ("Snapping_Manipulator"                    , versionMajor, versionMinor, "Snapping_Manipulator");
     //    qmlRegisterType<Manipulator2D_Translation>                      ("Manipulator2D_Translation"            , versionMajor, versionMinor, "Manipulator2D_Translation");
     //    qmlRegisterType<Manipulator2D_Rotation>                         ("Manipulator2D_Rotation"               , versionMajor, versionMinor, "Manipulator2D_Rotation");
     //    qmlRegisterType<Manipulator3D_Translation>                      ("Manipulator3D_Translation"            , versionMajor, versionMinor, "Manipulator3D_Translation");
@@ -304,7 +307,7 @@ void registerSofaTypesToQml(const char* /*uri*/)
     qmlRegisterType<SofaDataContainerListModel>                     ("SofaDataContainerListModel"           , versionMajor, versionMinor, "SofaDataContainerListModel");
     qmlRegisterType<SofaLinkCompletionModel>                        ("SofaLinkCompletionModel"              , versionMajor, versionMinor, "SofaLinkCompletionModel");
     qmlRegisterType<SofaInspectorDataListModel>                     ("SofaInspectorDataListModel"           , versionMajor, versionMinor, "SofaInspectorDataListModel");
-    //    qmlRegisterType<CustomInspectorModel>                           ("CustomInspectorModel"                 , versionMajor, versionMinor, "CustomInspectorModel");
+    qmlRegisterType<SofaCameraListModel>                            ("SofaCameraListModel"                  , versionMajor, versionMinor, "SofaCameraListModel");
     qmlRegisterType<SofaDisplayFlagsTreeModel>                      ("SofaDisplayFlagsTreeModel"            , versionMajor, versionMinor, "SofaDisplayFlagsTreeModel");
     qmlRegisterType<SofaViewer>                                     ("SofaViewer"                           , versionMajor, versionMinor, "SofaViewer");
     qmlRegisterType<CameraView>                                     ("CameraView"                           , versionMajor, versionMinor, "CameraView");
