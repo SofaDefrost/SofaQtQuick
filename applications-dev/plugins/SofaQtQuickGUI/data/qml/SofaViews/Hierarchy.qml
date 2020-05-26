@@ -47,9 +47,7 @@ Rectangle {
     id: root
     anchors.fill : parent
     color: SofaApplication.style.contentBackgroundColor
-    enabled: sofaScene ? sofaScene.ready : false
-
-    property var sofaScene: SofaApplication.sofaScene
+    enabled: SofaApplication.sofaScene ? SofaApplication.sofaScene.ready : false
 
     readonly property var searchBar: searchBar
 
@@ -60,15 +58,13 @@ Rectangle {
         Connections {
             target: SofaApplication
             onSignalComponent: function(objectpath){
-                var c = sofaScene.get(objectpath)
+                var c = SofaApplication.sofaScene.get(objectpath)
                 if(c)
                 {
                     var baseIndex = basemodel.getIndexFromBase(c)
                     var sceneIndex = sceneModel.mapFromSource(baseIndex)
                     treeView.expandAncestors(sceneIndex)
                     treeView.selection.setCurrentIndex(sceneIndex, ItemSelectionModel.ClearAndSelect);
-                    //treeView.__listView.positionViewAtIndex(sceneIndex, ListView.Contains)
-                    //_ _list  positionViewAtIndex(1,ListView.Beginning)
                 }
             }
         }
@@ -80,11 +76,17 @@ Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
+        sofaScene: SofaApplication.sofaScene
+        onSelectedItemChanged: {
+            var baseIndex = basemodel.getIndexFromBase(selectedItem)
+            var sceneIndex = sceneModel.mapFromSource(baseIndex)
+            treeView.expandAncestors(sceneIndex)
+            treeView.selection.setCurrentIndex(sceneIndex, ItemSelectionModel.ClearAndSelect);
+        }
     }
 
     TreeView {
         id : treeView
-
         anchors.top: searchBar.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -92,8 +94,23 @@ Rectangle {
         verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
         alternatingRowColors: true
 
+
         rowDelegate: Rectangle {
             color: styleData.selected ? "#82878c" : styleData.alternate ? SofaApplication.style.alternateBackgroundColor : SofaApplication.style.contentBackgroundColor
+        }
+
+        headerDelegate: Rectangle {
+            x: 5
+            y: 2
+            height: 18
+            color: SofaApplication.style.contentBackgroundColor
+            property var pressed: styleData.pressed
+            onPressedChanged: forceActiveFocus()
+            Label {
+                color: "black"
+                text: styleData.value
+            }
+
         }
 
         style: QQCS1.TreeViewStyle {
@@ -210,12 +227,12 @@ Rectangle {
         }
 
         selection: ItemSelectionModel {
+            id: selectionModel
             model: treeView.model
             onSelectionChanged:
             {
                 var srcIndex = sceneModel.mapToSource(currentIndex)
                 var theComponent = basemodel.getBaseFromIndex(srcIndex)
-                console.error("SelectedCompoennt theComponent: " + theComponent)
                 SofaApplication.selectedComponent = theComponent
                 SofaApplication.currentProject.selectedAsset = null
             }
@@ -230,7 +247,7 @@ Rectangle {
                 var srcIndex = sceneModel.mapToSource(idx)
                 var theComponent = basemodel.getBaseFromIndex(srcIndex)
                 if (theComponent === null) break;
-                console.error("Just expanded: " + theComponent.getPathName())
+                //console.error("Just expanded: " + theComponent.getPathName())
                 // On dépile récursivement les parents jusqu'à root
                 treeView.expand(idx)
                 old_idx = idx
@@ -246,7 +263,6 @@ Rectangle {
                 var srcIndex = sceneModel.mapToSource(idx)
                 var theComponent = basemodel.getBaseFromIndex(srcIndex)
                 if (theComponent === null) break;
-                console.error("Just collapsed: " + theComponent.getPathName())
                 // On dépile récursivement les parents jusqu'à root
                 treeView.collapse(idx)
                 old_idx = idx
@@ -257,7 +273,7 @@ Rectangle {
         SofaSceneItemModel
         {
             id: basemodel
-            sofaScene: root.sofaScene;
+            sofaScene: SofaApplication.sofaScene;
         }
 
         model:  SofaSceneItemProxy
@@ -266,15 +282,9 @@ Rectangle {
             model : basemodel
 
             onModelHasReset: {
-                console.error("Model reset")
                 treeView.restoreNodeState()
             }
 
-        }
-
-        onModelChanged:  {
-            console.error("Model Changed")
-            treeView.restoreNodeState()
         }
 
         Settings {
@@ -285,8 +295,6 @@ Rectangle {
 
         function getExpandedState()
         {
-            print("GET ExpANDED STATE")
-
             var nsArray = SofaApplication.nodeSettings.nodeState.split(';')
             for (var idx in nsArray)
             {
@@ -300,27 +308,26 @@ Rectangle {
         }
 
         function restoreNodeState() {
-            print("RESTORE NODE STATE")
-
-            if (Object.keys(nodeSettings.nodeState).length === 0 && SofaApplication.nodeSettings.nodeState !== "")
+            treeView.selection.select(treeView.selection.currentIndex, selectionModel.Deselect)
+            if (Object.keys(nodeSettings.nodeState).length === 0 && SofaApplication.nodeSettings.nodeState !== "") {
                 getExpandedState()
+            }
             for (var key in nodeSettings.nodeState) {
                 if (nodeSettings.nodeState[key] === "1")
                 {
                     var idx = null
-                    idx = sceneModel.mapFromSource(basemodel.getIndexFromBase(sofaScene.node(key)))
+                    idx = sceneModel.mapFromSource(basemodel.getIndexFromBase(SofaApplication.sofaScene.node(key)))
                     treeView.expand(idx)
                     expandAncestors(idx);
-                    console.error("expanded " + key)
                 }
             }
         }
 
         function storeExpandedState(index)
         {
-            print("STORE EXPANDED STATE FOR " + index)
             var srcIndex = sceneModel.mapToSource(index)
             var theComponent = basemodel.getBaseFromIndex(srcIndex)
+            if (theComponent === null) return;
             nodeSettings.nodeState[theComponent.getPathName() !== "" ? theComponent.getPathName() : "/"] = treeView.isExpanded(index)
             var i = 0;
             SofaApplication.nodeSettings.nodeState = ""
@@ -333,21 +340,22 @@ Rectangle {
         }
 
         onExpanded: {
-            storeExpandedState(index)
+            storeExpandedState(currentIndex)
         }
         onCollapsed: {
-            var srcIndex = sceneModel.mapToSource(index)
+            var srcIndex = sceneModel.mapToSource(currentIndex)
             var theComponent = basemodel.getBaseFromIndex(srcIndex)
-            console.error("Just collapsed: " + theComponent.getName())
-            storeExpandedState(index)
+            storeExpandedState(currentIndex)
         }
 
-        itemDelegate: Item {
+        itemDelegate: Rectangle {
             id: itemDelegateID
+
+
             property string origin: "Hierarchy"
             property bool multiparent : false
             property bool isDisabled : false
-            property bool isSelected: false
+            property var renaming: false
             property string name : model && model.name ? model.name : ""
             property string typename : model && model.typename ? model.typename : ""
             property string shortname : model && model.shortname ? model.shortname : ""
@@ -360,6 +368,20 @@ Rectangle {
             property var index: styleData.index
             property var tmpParent
 
+            Connections {
+                target: treeView
+                onCurrentIndexChanged: {
+                    var srcIndex = sceneModel.mapToSource(treeView.currentIndex)
+                    var treeViewComponent = basemodel.getBaseFromIndex(srcIndex)
+                    srcIndex = sceneModel.mapToSource(styleData.index)
+                    var component = basemodel.getBaseFromIndex(srcIndex)
+                    if (!component || !treeViewComponent) return;
+                    if (treeViewComponent.getPathName() === component.getPathName())
+                        mouseArea.forceActiveFocus()
+                }
+            }
+
+            color: "transparent"
             function getIconFromStatus(s)
             {
                 if(s === "Undefined")
@@ -466,28 +488,65 @@ Rectangle {
                 }
             }
 
-            Text {
-                id: rowText
-                anchors.left: icon.right
-                anchors.right: parent.right
-                anchors.rightMargin: 40
-                color: styleData.textColor
-                font.italic: hasMultiParent
-                elide: Text.ElideRight
-                clip: true
-                text: {
-                    if (isNode || typename == name)
-                        return name
-                    else if (name == shortname)
-                        return name
-                    else
-                        return typename+" ("+name+")"
+            Component {
+                id: textComponent
+                Text {
+                    id: rowText
+                    color: styleData.textColor
+                    font.italic: hasMultiParent
+                    elide: Text.ElideRight
+                    clip: true
+                    text: {
+                        if (isNode || typename == name)
+                            return name
+                        else if (name == shortname)
+                            return name
+                        else
+                            return typename+" ("+name+")"
+                    }
                 }
             }
 
+            Component {
+                id: renamingTextComponent
+                TextField {
+                    id: renamingText
+                    text: name
+                    enabled: true
+                    selectByMouse: true
+                    function forceFocus() {
+                        selectAll()
+                        forceActiveFocus()
+                    }
+                    Component.onCompleted: {
+                        forceFocus()
+                    }
+                    onEditingFinished: {
+                        var srcIndex = sceneModel.mapToSource(index)
+                        var c = basemodel.getBaseFromIndex(srcIndex)
+                        if (c.rename(text))
+                            renaming = false
+                        else
+                            forceFocus()
+                    }
+                }
+            }
+            Loader {
+                id: textLoader
+              // Explicitly set the size of the
+              // Loader to the parent item's size
+                anchors.left: icon.right
+                anchors.right: parent.right
+                anchors.rightMargin: 40
+                sourceComponent: {
+                    return renaming ? renamingTextComponent : textComponent
+                }
+            }
+
+
             Image {
                 id: componentState
-                anchors.verticalCenter: rowText.verticalCenter
+                anchors.verticalCenter: textLoader.verticalCenter
                 anchors.right: parent.right
                 height: 12
                 width: 12
@@ -501,14 +560,14 @@ Rectangle {
             IconButton {
                 /// This is the error button that shows when there is an error message on
                 /// an object or a node
-                id:childError
+                id: childError
                 hoverEnabled: true
-                anchors.verticalCenter: rowText.verticalCenter
+                anchors.verticalCenter: textLoader.verticalCenter
                 anchors.right: componentState.left
                 height: 12
                 width: 12
-                enabled: hasMessage || (hasChildMessage && !styleData.isExpanded)
-                visible: hasMessage || (hasChildMessage && !styleData.isExpanded)
+                enabled: hasMessage || (hasChildMessage && !styleData.isExpanded) || !root.enabled
+                visible: hasMessage || (hasChildMessage && !styleData.isExpanded) || !root.enabled
                 iconSource: "qrc:/icon/ICON_WARNING.png"
                 useHoverOpacity: false
                 layer {
@@ -516,7 +575,7 @@ Rectangle {
                         effect: ColorOverlay {
                             color: {
                                 if (isNode) {
-                                    if (hasChildMessage)
+                                    if (hasChildMessage || !root.enabled)
                                         return childError.hovered || localError.hovered ? "red" : "darkred"
                                     else
                                         return childError.hovered || localError.hovered ? "#DDDDDD" : "#BBBBBB"
@@ -539,10 +598,10 @@ Rectangle {
                         var c = getFirstChildWithMessage(index)
                         var idx = sceneModel.mapFromSource(basemodel.getIndexFromBase(c))
                         treeView.expandAncestors(idx)
-                        console.error("SelectedCompoennt c: " + c)
                         SofaApplication.selectedComponent = c;
                         treeView.__listView.positionViewAtIndex(index, "EnsureVisible")
 
+                        forceActiveFocus()
                         return
                     }
 
@@ -555,13 +614,17 @@ Rectangle {
                 z: 1
             }
 
+
+
+
+
             IconButton {
                 /// Window that contains the object message. The windows is only created when the menu item
                 /// is clicked
 
                 id: localError
                 hoverEnabled: true
-                anchors.verticalCenter: rowText.verticalCenter
+                anchors.verticalCenter: textLoader.verticalCenter
                 anchors.right: childError.left
                 anchors.rightMargin: -6
                 height: 12
@@ -595,9 +658,6 @@ Rectangle {
                 z: 1
             }
 
-
-            //Drag.active: mouseArea.drag.active
-            //Drag.dragType: Drag.Automatic
             SofaNodeMenu
             {
                 id: nodeMenu
@@ -615,12 +675,15 @@ Rectangle {
             Item {
                 id: dragItem
                 property string origin: "Hierarchy"
-                property SofaBase item: {
-                    var srcIndex = sceneModel.mapToSource(styleData.index)
-                    var theComponent = basemodel.getBaseFromIndex(srcIndex)
-                    dragItem.item = theComponent
-                }
+                property SofaBase item
                 Drag.active: mouseArea.drag.active
+                Drag.onActiveChanged: {
+                    var srcIndex = sceneModel.mapToSource(index)
+                    var theComponent = basemodel.getBaseFromIndex(srcIndex)
+                    item = theComponent
+                    print("Dragging " + item.getName())
+                }
+
                 Drag.dragType: Drag.Automatic
                 Drag.supportedActions: Qt.CopyAction
                 Drag.mimeData: {
@@ -640,18 +703,32 @@ Rectangle {
                 anchors.fill: parent
                 hoverEnabled: true
 
+
                 drag.target: dragItem
-                drag.onActiveChanged: {
-                    console.log("ON ACTIVE CANGE." + drag.active)
-                    console.log("DD" + drag.target.item)
+
+                Keys.onDeletePressed: {
+                    var srcIndex = sceneModel.mapToSource(styleData.index)
+                    var parent = basemodel.getBaseFromIndex(srcIndex.parent);
+                    var theComponent = basemodel.getBaseFromIndex(srcIndex)
+                    if (theComponent.isNode())
+                        parent.removeChild(theComponent);
+                    else
+                        parent.removeObject(theComponent);
+                }
+                Keys.onPressed: {
+                    if (event.key === Qt.Key_F2)
+                    {
+                        print("renaming....")
+                        renaming = true
+                    }
                 }
 
                 onClicked:
                 {
+                    forceActiveFocus()
                     var srcIndex = sceneModel.mapToSource(styleData.index)
                     var theComponent = basemodel.getBaseFromIndex(srcIndex)
                     if(mouse.button === Qt.LeftButton) {
-                        console.error("SelectedCompoennt theComponent2: " + theComponent)
                         SofaApplication.selectedComponent = theComponent
                         SofaApplication.currentProject.selectedAsset = null
 
@@ -669,7 +746,6 @@ Rectangle {
                             var pos = SofaApplication.getIdealPopupPos(nodeMenu, mouseArea)
                             nodeMenu.x = mouseArea.mouseX + pos[0]
                             nodeMenu.y = mouseArea.mouseY + pos[1]
-                            console.error(nodeMenu.x + " " + nodeMenu.y)
                             nodeMenu.open();
                         } else {
                             if(theComponent.hasLocations()===true)
@@ -704,7 +780,8 @@ Rectangle {
                         var oldIndex = src.index
                         oldIndex = sceneModel.mapToSource(oldIndex)
                         var theComponent = basemodel.getBaseFromIndex(oldIndex)
-
+                        if (!theComponent)
+                            return
                         var newIndex = styleData.index
                         newIndex = sceneModel.mapToSource(newIndex)
                         var parentNode = basemodel.getBaseFromIndex(newIndex)
@@ -727,26 +804,31 @@ Rectangle {
                     }
 
                     function dropFromProjectView(src) {
-                        var menuComponent = Qt.createComponent("qrc:/SofaWidgets/SofaAssetMenu.qml")
                         if (src.asset.typeString === "Python prefab" && src.assetName === "") {
+                            var menuComponent = Qt.createComponent("qrc:/SofaWidgets/SofaAssetMenu.qml")
                             var assetMenu = menuComponent.createObject(dropArea, {
                                                                            "asset": src.asset,
                                                                            "parentNode": node,
                                                                            "basemodel": basemodel,
                                                                            "sceneModel": sceneModel,
                                                                            "treeView": treeView,
-                                                                           "selection": ItemSelectionModel.ClearAndSelect
+                                                                           "selection": ItemSelectionModel.ClearAndSelect,
+                                                                           "showLoadScene": true
                                                                        });
                             assetMenu.open()
                         }
                         else {
                             var assetNode = src.asset.create(node, src.assetName)
+                            if (!assetNode)
+                                return
                             var srcIndex = basemodel.getIndexFromBase(assetNode)
-                            var index = sceneModel.mapFromSource(srcIndex);
+                            var index = sceneModel.mapFromSource(srcIndex)
                             treeView.collapseAncestors(index)
                             treeView.expandAncestors(index)
                             treeView.expand(index)
-                            treeView.selection.setCurrentIndex(index, selection)
+                            treeView.__listView.currentIndex = index.row
+                            treeView.selection.setCurrentIndex(index, selectionModel.Select)
+                            SofaApplication.selectedComponent = assetNode
                         }
                     }
 
@@ -763,7 +845,7 @@ Rectangle {
         }
 
         QQC1.TableViewColumn {
-            title: "Hierarchy"
+            title: (String(SofaApplication.sofaScene.source).slice(String(SofaApplication.sofaScene.source).lastIndexOf("/")+1))
             role: "name"
         }
     }
@@ -778,8 +860,8 @@ Rectangle {
         id: nodesCheckBox
         anchors.top: treeView.anchors.top
         anchors.topMargin: 1
-        anchors.right: treeView.anchors.right
-        anchors.rightMargin: +30
+        anchors.right: root.right
+        anchors.rightMargin: 5
         checked: false
         onCheckedChanged: {
             sceneModel.showOnlyNodes(checked)

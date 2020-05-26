@@ -32,19 +32,29 @@ TextField {
 
     property var sofaData: null
     readOnly: sofaData.properties.type !== "string" ? true : sofaData.properties.readOnly
-    text: sofaData.value.toString()
     implicitWidth: parent.width
     Layout.fillWidth: true
+    selectByMouse: true
+
+    text: sofaData.value.toString()
+    Connections
+    {
+        target: sofaData
+        onValueChanged: {
+            text=sofaData.value.toString()
+            console.log("VALUE HAS CHANGED... "+ text)
+        }
+    }
 
     onAccepted:
     {
-        console.log("Accepted")
+        console.log("VALUE HAS CHANGED... SETTING" +  text)
         sofaData.value = text
         root.focus = false
     }
     onEditingFinished:
     {
-        console.log("EditingFinished")
+        console.log("VALUE HAS CHANGED... SETTING2" + text)
         sofaData.value = text
         root.focus = false
     }

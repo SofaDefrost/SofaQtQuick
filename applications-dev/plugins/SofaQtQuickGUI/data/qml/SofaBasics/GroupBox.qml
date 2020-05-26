@@ -15,7 +15,7 @@ GroupBox {
     property int expandedHeight: 0
     property url titleIcon
     property string buttonIconSource: ""
-    property var buttonAction
+    signal buttonClicked
 
     onExpandedChanged: {
         contentItem.visible = expanded
@@ -31,7 +31,14 @@ GroupBox {
     topPadding: 30 + (implicitLabelWidth > 0 ? implicitLabelHeight + spacing : 0)
     bottomPadding: 0
 
-    label: Item {
+    label: Rectangle {
+        anchors.fill: parent
+        color: "transparent"
+        MouseArea {
+            anchors.fill: parent
+            onPressed: forceActiveFocus()
+        }
+
         Rectangle {
             y: 0
             x: 10
@@ -56,9 +63,7 @@ GroupBox {
             color: "#393939"
             MouseArea {
                 anchors.fill: parent
-                onClicked: {
-                    control.expanded = !control.expanded
-                }
+                onClicked: control.expanded = !control.expanded
             }
             anchors.verticalCenter: label.verticalCenter
         }
@@ -81,24 +86,44 @@ GroupBox {
             anchors.left: titleIconId.right
             anchors.leftMargin: 5
         }
-        SB.IconButton {
+        Button {
             id: extraButton
+            hoverEnabled: true
+            property string iconSource: buttonIconSource
+            property bool useHoverOpacity: true
+            ColorImage {
+                id: image
+                width: 13
+                height: 13
+                anchors.centerIn: parent
+                source: extraButton.iconSource
+                fillMode: Image.PreserveAspectFit
+                color: extraButton.hovered ? "darkgrey" : "#393939"
+
+            }
+            background: Rectangle {
+                color: "transparent"
+            }
             anchors.left: label.right
             anchors.leftMargin: 5
             anchors.verticalCenter: label.verticalCenter
             implicitWidth: 20
             implicitHeight: 20
             visible: buttonIconSource !== ""
-            iconSource: buttonIconSource
-            onClicked: buttonAction()
+            onClicked: buttonClicked()
         }
     }
     background: Rectangle {
-        visible: control.expanded
-        y: control.topPadding - control.bottomPadding
-        width: parent.width
-        height: parent.height - control.topPadding + control.bottomPadding
+        anchors.fill: parent
 
         color: "transparent"
+        MouseArea {
+            anchors.fill: parent
+            onPressed: {
+                print( "Mouse area pressed in a rectangle.")
+                forceActiveFocus()
+            }
+        }
+
     }  
 }

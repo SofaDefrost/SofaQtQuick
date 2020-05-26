@@ -1,27 +1,16 @@
 
 import QtQuick 2.12
 import QtQuick.Controls 2.5
-import QtQuick.Dialogs 1.2
+import QtQuick.Dialogs 1.3
 import QtQuick.Layouts 1.12
 import QtQuick.Window 2.12
 import SofaBasics 1.0
 import SofaViewListModel 1.0
-import GraphView 1.0
-import ProfilerView 1.0
+import SofaApplication 1.0
+import SofaWidgets 1.0
 
 MenuBar {
     id: menuBar
-    property var sofaApplication: null
-
-    Item {
-        id: internal_params
-
-        property string sceneUrl: openSofaSceneDialog.sofaSceneFileUrl
-        onSceneUrlChanged: {
-            if (sofaApplication.sofaScene)
-                sofaApplication.sofaScene.source = sceneUrl
-        }
-    }
 
     Menu {
         id: fileMenuID
@@ -38,26 +27,13 @@ MenuBar {
                 detailedText: qsTr("New project folders must be empty")
             }
 
-            FileDialog {
-                id: newProjectDialog
-                selectFolder: true
-                selectExisting: false
-                onAccepted: {
-                    if (Qt.resolvedUrl(fileUrl)) {
-                        var scene = sofaApplication.currentProject.createProject(fileUrl)
-                        sofaApplication.projectSettings.addRecent(fileUrl)
-                        sofaApplication.sofaScene.source = scene
-                    }
-                    else
-                        newProjectErrorDialog.open()
-                }
-            }
-
             function openDialog() {
-                newProjectDialog.open()
+                SofaApplication.currentProject.newProject()
+                SofaApplication.sceneSettings.addRecent(SofaApplication.sofaScene.source)
+                SofaApplication.projectSettings.addRecent(SofaApplication.currentProject.rootDirPath)
             }
             Shortcut {
-                sequence: StandardKey.Open
+                sequence: StandardKey.New
                 context: Qt.ApplicationShortcut
                 onActivated: newProject.openDialog()
             }
@@ -68,19 +44,11 @@ MenuBar {
         MenuItem {
             id: openProject
             text: qsTr("Open Project...")
-            FileDialog {
-                id: openProjectDialog
-                title: "Please choose a project directory"
-                folder: shortcuts.home
-                selectFolder: true
-                sidebarVisible: true
-                onAccepted: {
-                    sofaApplication.projectSettings.addRecent(fileUrl)
-                }
-            }
 
             function openDialog() {
-                openProjectDialog.open()
+                SofaApplication.currentProject.openProject()
+                SofaApplication.sceneSettings.addRecent(SofaApplication.sofaScene.source)
+                SofaApplication.projectSettings.addRecent(SofaApplication.currentProject.rootDirPath)
             }
             Shortcut {
                 sequence: StandardKey.Open
@@ -95,23 +63,11 @@ MenuBar {
         MenuItem {
             id: importProject
             text: qsTr("Import Project...")
-            FileDialog {
-                id: importProjectDialog
-                title: "Please choose a project directory"
-                folder: shortcuts.home
-                selectFolder: false
-                selectExisting: false
-                sidebarVisible: true
-                nameFilters: ["Archives (*.zip)", "All files (*)"]
-                onAccepted: {
-                    var extractedFolder = sofaApplication.currentProject.importProject(fileUrl);
-//                    console.error(extractedFolder)
-                    sofaApplication.projectSettings.addRecent("file://" + extractedFolder)
-                }
-            }
 
             onTriggered: {
-                importProjectDialog.open()
+                SofaApplication.currentProject.importProject();
+                SofaApplication.sceneSettings.addRecent(SofaApplication.sofaScene.source)
+
             }
         }
 
@@ -119,7 +75,7 @@ MenuBar {
             id: exportProject
             text: qsTr("Export Current Project")
             onTriggered: {
-                sofaApplication.currentProject.exportProject(sofaApplication.projectSettings.currentProject())
+                SofaApplication.currentProject.exportProject()
             }
         }
 
@@ -137,20 +93,15 @@ MenuBar {
             id: openMenuItem
             text: "&Open..."
 
-            function openDialog() {
-                openSofaSceneDialog.open()
-            }
+            Shortcut {
+                sequence: StandardKey.Open
+                context: Qt.ApplicationShortcut
+                onActivated: SofaApplication.sofaScene.openScene(SofaApplication.currentProject.rootDir);
 
-//            Shortcut {
-//                sequence: StandardKey.Open
-//                context: Qt.ApplicationShortcut
-//                onActivated: openMenuItem.openDialog()
-//            }
+            }
             onTriggered: {
-                openMenuItem.openDialog()
+                SofaApplication.sofaScene.openScene(SofaApplication.currentProject.rootDir);
             }
-
-            SofaSceneFileDialog { id: openSofaSceneDialog }
 
         }
 
@@ -158,11 +109,11 @@ MenuBar {
         Menu {
             id: recentMenu
             title: "Open recent"
-            enabled: sofaApplication.sceneSettings.sofaSceneRecents !== ""
+            enabled: SofaApplication.sceneSettings.sofaSceneRecents !== ""
 
             implicitHeight: contentHeight
             ListModel { id: scenesModel }
-            property var modelList: sofaApplication.sceneSettings.sofaSceneRecents
+            property var modelList: SofaApplication.sceneSettings.sofaSceneRecents
             onModelListChanged: {
                 scenesModel.clear()
                 var mlist = modelList.split(";")
@@ -181,17 +132,17 @@ MenuBar {
                         text: model.index + " - " + model.title
                         onTriggered: {
                             fileMenuID.close()
-                            internal_params.sceneUrl = model.fileUrl
+                           SofaApplication.sofaScene.source = model.fileUrl
                         }
                     }
                 }
-                MenuSeparator { visible: sofaApplication.sceneSettings.sofaSceneRecents !== "" }
+                MenuSeparator { visible: SofaApplication.sceneSettings.sofaSceneRecents !== "" }
                 MenuItem {
-                    enabled: sofaApplication.sceneSettings.sofaSceneRecents !== ""
+                    enabled: SofaApplication.sceneSettings.sofaSceneRecents !== ""
                     text: "Clear Recents"
                     onTriggered: {
                         fileMenuID.close()
-                        sofaApplication.sceneSettings.sofaSceneRecents = ""
+                        SofaApplication.sceneSettings.sofaSceneRecents = ""
                     }
                 }
             }
@@ -200,17 +151,14 @@ MenuBar {
             id: reloadMenuItem
             text: "&Reload"
 
-            function reload() {
-                sofaApplication.sofaScene.reload()
-            }
             Shortcut {
                 sequence: StandardKey.Refresh
                 context: Qt.ApplicationShortcut
-                onActivated: reloadMenuItem.reload()
+                onActivated: SofaApplication.sofaScene.reloadScene()
             }
             onTriggered: {
                 fileMenuID.close()
-                reloadMenuItem.reload()
+                SofaApplication.sofaScene.reloadScene()
             }
         }
 
@@ -218,42 +166,51 @@ MenuBar {
             text: "Save";
             id: saveItem
 
-            function saveScene()
-            {
-                var filePath = sofaApplication.sofaScene.path;
-                sofaApplication.currentProject.saveScene(filePath.replace('file://', ''),
-                                                         sofaApplication.sofaScene.root())
+            MessageDialog {
+                id: saveDialog
+                title: "Overwrite?"
+                icon: StandardIcon.Question
+                text: SofaApplication.sofaScene.path + " already exists. Replace?"
+                detailedText: "The previous version of the file will be backed up in a separate file suffixed '.backup'"
+                standardButtons: StandardButton.Yes | StandardButton.Abort
+                onYes: SofaApplication.sofaScene.saveScene()
             }
 
             Shortcut {
                 sequence: StandardKey.Save
                 context: Qt.ApplicationShortcut
-                onActivated: { saveItem.saveScene() }
+                onActivated: saveDialog.open()
             }
-            onTriggered:  { saveItem.saveScene() }
+            onTriggered:  { saveDialog.open() }
         }
         MenuItem {
+            id: saveAs
             text: "Save as..."
 
-            FileDialog
-            {
-                id: fileDialog;
-                visible: false
-                selectExisting: false ///< indicate that the file dialog can be used to create new files.
-                folder: sofaApplication.currentProject.rootDir.toString()
-                onSelectionAccepted: {
-                    sofaApplication.currentProject.saveScene(fileUrl.toString().replace('file://', ""), sofaApplication.sofaScene.root())
-                }
-            }
+
 
             Shortcut {
                 sequence: StandardKey.SaveAs
                 context: Qt.ApplicationShortcut
-                onActivated: fileDialog.open()
+                onActivated: SofaApplication.sofaScene.saveSceneAs(SofaApplication.currentProject.rootDir)
             }
-            onTriggered: fileDialog.open()
+            onTriggered: SofaApplication.sofaScene.saveSceneAs(SofaApplication.currentProject.rootDir)
         }
-        MenuItem { text: "Export as...(TODO)"; enabled : false }
+        MenuItem {
+            text: "Export as...(TODO)"
+            enabled : false
+            onTriggered: SofaApplication.sofaScene.exportSceneAs(SofaApplication.currentProject.rootDir)
+        }
+
+
+        MenuItem {
+            id: newScene
+            text: "&New Scene..."
+            enabled: true
+            onTriggered: {
+                SofaApplication.sofaScene.newScene()
+            }
+        }
         MenuSeparator {}
 
         MenuItem {
@@ -331,7 +288,7 @@ MenuBar {
             MenuSeparator {}
 
             Repeater {
-                model: sofaApplication.sofaViewListModel
+                model: SofaApplication.sofaViewListModel
                 MenuItem {
                     text: model.name
                     onTriggered: {
@@ -365,12 +322,18 @@ MenuBar {
             MenuItem {
                 text: "Profiler";
                 onTriggered: {
-                    ProfilerView.open()
+                    profilerWidget.visible = true
+
                     windowMenu.close()
                 }
                 ToolTip {
                     text: qsTr("Open the default Profiler")
                     description: "To visualize where the computation take place"
+                }
+
+                Profiler {
+                    id: profilerWidget
+                    visible: false
                 }
             }
 
@@ -395,7 +358,7 @@ MenuBar {
                 modality: Qt.NonModal
                 flags: Qt.Tool | Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint | Qt.WindowSystemMenuHint |Qt.WindowTitleHint | Qt.WindowCloseButtonHint | Qt.WindowMinMaxButtonsHint
                 visible: true
-                color: sofaApplication.style.contentBackgroundColor
+                color: SofaApplication.style.contentBackgroundColor
 
                 Loader {
                     id: loader
@@ -418,7 +381,7 @@ MenuBar {
                 modality: Qt.NonModal
                 flags: Qt.Tool | Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint | Qt.WindowSystemMenuHint |Qt.WindowTitleHint | Qt.WindowCloseButtonHint | Qt.WindowMinMaxButtonsHint
                 visible: true
-                color: sofaApplication.style.contentBackgroundColor
+                color: SofaApplication.style.contentBackgroundColor
 
                 Loader {
                     id: loader
@@ -429,6 +392,20 @@ MenuBar {
             }
         }
 
+    }
+    Menu {
+        Preferences {
+            id: prefs
+        }
+
+        title: "&Tools"
+        MenuItem {
+            text: "Preferences...";
+            enabled : true
+            onTriggered: {
+                prefs.visible = true
+            }
+        }
     }
 
     Menu {

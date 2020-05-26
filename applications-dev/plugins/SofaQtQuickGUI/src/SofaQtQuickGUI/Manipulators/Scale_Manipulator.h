@@ -24,7 +24,7 @@ public:
     virtual int getIndices() const override;
     void drawXYPlane() const;
 
-    static sofa::core::objectmodel::BaseData* getData();
+    static sofa::core::objectmodel::BaseData* GetData();
     
     Q_PROPERTY(bool uniform READ getUniform WRITE setUniform NOTIFY uniformChanged)
 signals:

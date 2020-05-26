@@ -27,8 +27,12 @@ along with sofaqtquick. If not, see <http://www.gnu.org/licenses/>.
 using sofaqtquick::Translate_Manipulator;
 #include <SofaQtQuickGUI/Manipulators/Scale_Manipulator.h>
 using sofaqtquick::Scale_Manipulator;
-#include <SofaQtQuickGUI/Manipulators/TranslateParticle_Manipulator.h>
-using sofaqtquick::TranslateParticle_Manipulator;
+#include <SofaQtQuickGUI/Manipulators/Viewpoint_Manipulator.h>
+using sofaqtquick::Viewpoint_Manipulator;
+#include <SofaQtQuickGUI/Manipulators/Snapping_Manipulator.h>
+using sofaqtquick::Snapping_Manipulator;
+//#include <SofaQtQuickGUI/Manipulators/TranslateParticle_Manipulator.h>
+//using sofaqtquick::TranslateParticle_Manipulator;
 #include <SofaQtQuickGUI/Manipulators/Rotate_Manipulator.h>
 using sofaqtquick::Rotate_Manipulator;
 #include <SofaQtQuickGUI/SofaBaseScene.h>
@@ -64,7 +68,7 @@ using sofaqtquick::bindings::SofaBaseObjectList;
 #include <SofaQtQuickGUI/Models/SofaLinkCompletionModel.h>
 #include <SofaQtQuickGUI/Models/SofaInspectorDataListModel.h>
 #include <SofaQtQuickGUI/Models/SofaDisplayFlagsTreeModel.h>
-//#include <SofaQtQuickGUI/Models/CustomInspectorModel.h>
+#include <SofaQtQuickGUI/Models/SofaCameraListModel.h>
 #include <SofaQtQuickGUI/Windows/CameraView.h>
 #include <SofaQtQuickGUI/Windows/EditView.h>
 #include <SofaQtQuickGUI/Windows/AssetView.h>
@@ -85,10 +89,13 @@ using sofaqtquick::Asset;
 #include <SofaQtQuickGUI/Assets/PythonAsset.h>
 using sofaqtquick::PythonAsset;
 
-#include <SofaQtQuickGUI/Assets/MeshAsset.h>
-using sofaqtquick::MeshAsset;
+//#include <SofaQtQuickGUI/Assets/MeshAsset.h>
+//using sofaqtquick::MeshAsset;
 #include <SofaQtQuickGUI/Assets/TextureAsset.h>
 using sofaqtquick::TextureAsset;
+
+#include <SofaQtQuickGUI/Assets/TemplateAsset.h>
+using sofaqtquick::TemplateAsset;
 
 #include <SofaQtQuickGUI/Bindings/SofaFactory.h>
 using sofaqtquick::bindings::SofaFactory;
@@ -105,13 +112,14 @@ using sofaqtquick::views::ShapeGraphView;
 #include <SofaQtQuickGUI/Windows/GraphView.h>
 using sofaqtquick::views::GraphView;
 
-#include <SofaQtQuickGUI/Windows/ProfilerView.h>
-using sofaqtquick::views::ProfilerView;
+#include <SofaQtQuickGUI/ProfilerTreeViewModel.h>
+using sofaqtquick::ProfilerTreeViewModel;
 
 #include <sofa/helper/system/PluginManager.h>
 
 #include <QQmlPropertyMap>
 #include <QQmlContext>
+#include <QFileDialog>
 
 using sofa::qtquick::SofaComponent;
 
@@ -175,48 +183,48 @@ static QObject* createSofaBaseApplication(QQmlEngine *engine,
     return SofaBaseApplication::Instance();
 }
 
-// Following the doc on creating a singleton component
-// we need to have function that return the singleton instance.
-// see: http://doc.qt.io/qt-5/qqmlengine.html#qmlRegisterSingletonType
-static QObject* createShapeGraphView(QQmlEngine *engine,
-                                     QJSEngine *scriptEngine){
-    Q_UNUSED(engine)
-    Q_UNUSED(scriptEngine)
-    auto g= new ShapeGraphView(nullptr);
-    //g->show();
-    //g->raise();
-    //g->activateWindow();
-    return g;
-}
+//// Following the doc on creating a singleton component
+//// we need to have function that return the singleton instance.
+//// see: http://doc.qt.io/qt-5/qqmlengine.html#qmlRegisterSingletonType
+//static QObject* createShapeGraphView(QQmlEngine *engine,
+//                                     QJSEngine *scriptEngine){
+//    Q_UNUSED(engine)
+//    Q_UNUSED(scriptEngine)
+//    auto g= new ShapeGraphView(nullptr);
+//    //g->show();
+//    //g->raise();
+//    //g->activateWindow();
+//    return g;
+//}
 
 
-// Following the doc on creating a singleton component
-// we need to have function that return the singleton instance.
-// see: http://doc.qt.io/qt-5/qqmlengine.html#qmlRegisterSingletonType
-static QObject* createGraphView(QQmlEngine *engine,
-                                QJSEngine *scriptEngine){
-    Q_UNUSED(engine)
-    Q_UNUSED(scriptEngine)
-    auto g= new GraphView(nullptr);
-    //g->show();
-    //g->raise();
-    //g->activateWindow();
-    return g;
-}
+//// Following the doc on creating a singleton component
+//// we need to have function that return the singleton instance.
+//// see: http://doc.qt.io/qt-5/qqmlengine.html#qmlRegisterSingletonType
+//static QObject* createGraphView(QQmlEngine *engine,
+//                                QJSEngine *scriptEngine){
+//    Q_UNUSED(engine)
+//    Q_UNUSED(scriptEngine)
+//    auto g= new GraphView(nullptr);
+//    //g->show();
+//    //g->raise();
+//    //g->activateWindow();
+//    return g;
+//}
 
-// Following the doc on creating a singleton component
-// we need to have function that return the singleton instance.
-// see: http://doc.qt.io/qt-5/qqmlengine.html#qmlRegisterSingletonType
-static QObject* createProfilerView(QQmlEngine *engine,
-                                QJSEngine *scriptEngine){
-    Q_UNUSED(engine)
-    Q_UNUSED(scriptEngine)
-    auto p= new ProfilerView(nullptr);
-    //p->show();
-    //p->raise();
-    //p->activateWindow();
-    return p;
-}
+//// Following the doc on creating a singleton component
+//// we need to have function that return the singleton instance.
+//// see: http://doc.qt.io/qt-5/qqmlengine.html#qmlRegisterSingletonType
+//static QObject* createProfilerView(QQmlEngine *engine,
+//                                   QJSEngine *scriptEngine){
+//    Q_UNUSED(engine)
+//    Q_UNUSED(scriptEngine)
+//    auto p= new ProfilerTreeView(nullptr);
+//    //p->show();
+//    //p->raise();
+//    //p->activateWindow();
+//    return p;
+//}
 
 
 
@@ -226,6 +234,7 @@ void registerSofaTypesToQml(const char* /*uri*/)
     qRegisterMetaType<size_t>("const size_t");
     qRegisterMetaType<QVariantMap*>("QVariantMap*");
     qRegisterMetaType<SofaBaseScene*>("const SofaBaseScene*");
+    qRegisterMetaType<SofaBaseScene*>("SofaBaseScene*");
     qRegisterMetaType<SofaBaseScene*>("const SofaScene*");
     qRegisterMetaType<Asset*>("Asset*");
     qRegisterMetaType<QUrlList>("QUrlList");
@@ -234,6 +243,11 @@ void registerSofaTypesToQml(const char* /*uri*/)
     qRegisterMetaType<sofaqtquick::bindings::SofaData*>("sofaqtquick::bindings::_sofadata_::SofaData*");
     qRegisterMetaType<sofaqtquick::bindings::SofaData*>("SofaData*");
     qRegisterMetaType<sofaqtquick::bindings::SofaData*>("_sofadata_::SofaData*");
+
+    qRegisterMetaType<sofaqtquick::bindings::SofaData*>("sofaqtquick::bindings::SofaDataFileName*");
+    qRegisterMetaType<sofaqtquick::bindings::SofaData*>("sofaqtquick::bindings::_sofadatafilename_::SofaDataFileName*");
+    qRegisterMetaType<sofaqtquick::bindings::SofaData*>("SofaDataFileName*");
+    qRegisterMetaType<sofaqtquick::bindings::SofaData*>("_sofadatafilename_::SofaDataFileName*");
 
     qRegisterMetaType<sofaqtquick::bindings::SofaData*>("sofaqtquick::bindings::SofaLink*");
     qRegisterMetaType<sofaqtquick::bindings::SofaData*>("sofaqtquick::bindings::_sofalink_::SofaLink*");
@@ -257,21 +271,26 @@ void registerSofaTypesToQml(const char* /*uri*/)
     qRegisterMetaType<sofaqtquick::bindings::SofaBaseObject*>("_sofaobject_::SofaBaseObject*");
     qRegisterMetaType<sofaqtquick::bindings::SofaBaseObjectList*>("SofaBaseObjectList*");
 
+    qmlRegisterType<sofaqtquick::ProfilerTreeViewModel>                          ("ProfilerTreeViewModel"                , versionMajor, versionMinor, "ProfilerTreeViewModel");
+    qRegisterMetaType<sofaqtquick::Manipulator*>("Manipulator*");
+
     qRegisterMetaType<SofaViewer*>("SofaViewer*");
 
+    qmlRegisterType<QFileDialog>("QFileDialog", versionMajor, versionMinor, "QFileDialog");
     qmlRegisterType<Camera>                                         ("Camera"                               , versionMajor, versionMinor, "Camera");
     qmlRegisterType<SofaCamera>                                     ("SofaCamera"                           , versionMajor, versionMinor, "SofaCamera");
     qmlRegisterType<SofaParticleInteractor>                         ("SofaParticleInteractor"               , versionMajor, versionMinor, "SofaParticleInteractor");
     //    qmlRegisterType<SofaPythonInteractor>                           ("SofaPythonInteractor"                 , versionMajor, versionMinor, "SofaPythonInteractor");
     qmlRegisterType<Translate_Manipulator>                              ("Translate_Manipulator"                    , versionMajor, versionMinor, "Translate_Manipulator");
-    qmlRegisterType<TranslateParticle_Manipulator>                              ("TranslateParticle_Manipulator"                    , versionMajor, versionMinor, "TranslateParticle_Manipulator");
+    qmlRegisterType<Viewpoint_Manipulator>                              ("Viewpoint_Manipulator"                    , versionMajor, versionMinor, "Viewpoint_Manipulator");
     qmlRegisterType<Rotate_Manipulator>                              ("Rotate_Manipulator"                    , versionMajor, versionMinor, "Rotate_Manipulator");
     qmlRegisterType<Scale_Manipulator>                              ("Scale_Manipulator"                    , versionMajor, versionMinor, "Scale_Manipulator");
-//    qmlRegisterType<Manipulator2D_Translation>                      ("Manipulator2D_Translation"            , versionMajor, versionMinor, "Manipulator2D_Translation");
-//    qmlRegisterType<Manipulator2D_Rotation>                         ("Manipulator2D_Rotation"               , versionMajor, versionMinor, "Manipulator2D_Rotation");
-//    qmlRegisterType<Manipulator3D_Translation>                      ("Manipulator3D_Translation"            , versionMajor, versionMinor, "Manipulator3D_Translation");
-//    qmlRegisterType<Manipulator3D_InPlaneTranslation>               ("Manipulator3D_InPlaneTranslation"     , versionMajor, versionMinor, "Manipulator3D_InPlaneTranslation");
-//    qmlRegisterType<Manipulator3D_Rotation>                         ("Manipulator3D_Rotation"               , versionMajor, versionMinor, "Manipulator3D_Rotation");
+    qmlRegisterType<Snapping_Manipulator>                              ("Snapping_Manipulator"                    , versionMajor, versionMinor, "Snapping_Manipulator");
+    //    qmlRegisterType<Manipulator2D_Translation>                      ("Manipulator2D_Translation"            , versionMajor, versionMinor, "Manipulator2D_Translation");
+    //    qmlRegisterType<Manipulator2D_Rotation>                         ("Manipulator2D_Rotation"               , versionMajor, versionMinor, "Manipulator2D_Rotation");
+    //    qmlRegisterType<Manipulator3D_Translation>                      ("Manipulator3D_Translation"            , versionMajor, versionMinor, "Manipulator3D_Translation");
+    //    qmlRegisterType<Manipulator3D_InPlaneTranslation>               ("Manipulator3D_InPlaneTranslation"     , versionMajor, versionMinor, "Manipulator3D_InPlaneTranslation");
+    //    qmlRegisterType<Manipulator3D_Rotation>                         ("Manipulator3D_Rotation"               , versionMajor, versionMinor, "Manipulator3D_Rotation");
     qmlRegisterType<SofaBaseScene>                                  ("SofaBaseScene"                        , versionMajor, versionMinor, "SofaBaseScene");
     qmlRegisterUncreatableType<SofaComponent> 	                    ("SofaComponent"                        , versionMajor, versionMinor, "SofaComponent", "SofaComponent is not instantiable");
     qmlRegisterUncreatableType<SofaBaseList>                        ("SofaComponentList"                    , versionMajor, versionMinor, "SofaComponentList", "SofaComponentList is not instantiable");
@@ -288,7 +307,7 @@ void registerSofaTypesToQml(const char* /*uri*/)
     qmlRegisterType<SofaDataContainerListModel>                     ("SofaDataContainerListModel"           , versionMajor, versionMinor, "SofaDataContainerListModel");
     qmlRegisterType<SofaLinkCompletionModel>                        ("SofaLinkCompletionModel"              , versionMajor, versionMinor, "SofaLinkCompletionModel");
     qmlRegisterType<SofaInspectorDataListModel>                     ("SofaInspectorDataListModel"           , versionMajor, versionMinor, "SofaInspectorDataListModel");
-    //    qmlRegisterType<CustomInspectorModel>                           ("CustomInspectorModel"                 , versionMajor, versionMinor, "CustomInspectorModel");
+    qmlRegisterType<SofaCameraListModel>                            ("SofaCameraListModel"                  , versionMajor, versionMinor, "SofaCameraListModel");
     qmlRegisterType<SofaDisplayFlagsTreeModel>                      ("SofaDisplayFlagsTreeModel"            , versionMajor, versionMinor, "SofaDisplayFlagsTreeModel");
     qmlRegisterType<SofaViewer>                                     ("SofaViewer"                           , versionMajor, versionMinor, "SofaViewer");
     qmlRegisterType<CameraView>                                     ("CameraView"                           , versionMajor, versionMinor, "CameraView");
@@ -299,7 +318,8 @@ void registerSofaTypesToQml(const char* /*uri*/)
     qmlRegisterUncreatableType<Asset>                               ("Asset"                                , versionMajor, versionMinor, "Asset", QString("It is not possible to create an Asset"));
     qmlRegisterType<PythonAsset>                                    ("PythonAsset"                          , versionMajor, versionMinor, "PythonAsset");
     qmlRegisterType<HighlightComponent>                             ("HighlightComponent"                   , versionMajor, versionMinor, "HighlightComponent");
-    qmlRegisterUncreatableType<MeshAsset>                           ("MeshAsset"                            , versionMajor, versionMinor, "MeshAsset", QString("It is not possible to create a MeshAsset"));
+    qmlRegisterUncreatableType<TemplateAsset>                       ("TemplateAsset"                        , versionMajor, versionMinor, "TemplateAsset", QString("It is not possible to create a TemplateAsset from QML"));
+//    qmlRegisterUncreatableType<MeshAsset>                           ("MeshAsset"                            , versionMajor, versionMinor, "MeshAsset", QString("It is not possible to create a MeshAsset"));
     qmlRegisterUncreatableType<TextureAsset>                        ("TextureAsset"                         , versionMajor, versionMinor, "TextureAsset", QString("It is not possible to create a TextureAsset"));
 
     qmlRegisterUncreatableType<sofaqtquick::bindings::SofaLink> ("Sofa.Core.SofaLink",
@@ -355,23 +375,23 @@ void registerSofaTypesToQml(const char* /*uri*/)
                                                  createAnInstanceOfLiveFileMonitor // the function used to create the singleton instance
                                                  );
 
-    qmlRegisterSingletonType<GraphView>("GraphView",            // char* uri
-                                        versionMajor, versionMinor,   // minor/major version number
-                                        "GraphView",       // exported name
-                                        createGraphView // the function used to create the singleton instance
-                                        );
+//    qmlRegisterSingletonType<GraphView>("GraphView",            // char* uri
+//                                        versionMajor, versionMinor,   // minor/major version number
+//                                        "GraphView",       // exported name
+//                                        createGraphView // the function used to create the singleton instance
+//                                        );
 
-    qmlRegisterSingletonType<GraphView>("ShapeGraphView",            // char* uri
-                                        versionMajor, versionMinor,   // minor/major version number
-                                        "ShapeGraphView",       // exported name
-                                        createGraphView // the function used to create the singleton instance
-                                        );
+//    qmlRegisterSingletonType<GraphView>("ShapeGraphView",            // char* uri
+//                                        versionMajor, versionMinor,   // minor/major version number
+//                                        "ShapeGraphView",       // exported name
+//                                        createGraphView // the function used to create the singleton instance
+//                                        );
 
-    qmlRegisterSingletonType<GraphView>("ProfilerView",            // char* uri
-                                        versionMajor, versionMinor,   // minor/major version number
-                                        "ProfilerView",       // exported name
-                                        createProfilerView // the function used to create the singleton instance
-                                        );
+//    qmlRegisterSingletonType<GraphView>("ProfilerTreeView",            // char* uri
+//                                        versionMajor, versionMinor,   // minor/major version number
+//                                        "ProfilerTreeView",       // exported name
+//                                        createProfilerView // the function used to create the singleton instance
+//                                        );
 
     SofaCoreBindingFactory::registerType("DAGNode", [](sofa::core::objectmodel::Base* obj)
     {

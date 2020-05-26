@@ -21,6 +21,7 @@ along with sofaqtquick. If not, see <http://www.gnu.org/licenses/>.
 
 #include <SofaQtQuickGUI/SofaBaseApplication.h>
 #include <SofaQtQuickGUI/SofaBaseScene.h>
+#include <SofaQtQuickGUI/SofaProject.h>
 #include <SofaQtQuickGUI/ProcessState.h>
 
 #include <sofa/helper/system/FileSystem.h>
@@ -79,6 +80,8 @@ using sofaqtquick::SofaQtQuickQmlModule;
 #include <QQmlDebuggingEnabler>
 QQmlDebuggingEnabler enabler;
 
+#include <SofaQtQuickGUI/Bindings/SofaData.h>
+
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 #include <signal.h>
 #endif
@@ -115,13 +118,18 @@ SofaBaseApplication::SofaBaseApplication(QObject* parent) : QObject(parent),
             break;
         }
 
-
+    connect(&m_viewUpdater, &QTimer::timeout, [](){
+        SofaBaseApplication::updateAllDataView();
+    });
+    m_viewUpdater.start(70);
 
     /// Initialize the general python3 environment.
     sofapython3::PythonEnvironment::Init();
 
     /// Initialize the layer specific to sofaqtquick environment.
     sofaqtquick::PythonEnvironment::Init();
+
+    m_currentProject = new SofaProject();
 }
 
 SofaBaseApplication::~SofaBaseApplication()
@@ -191,19 +199,38 @@ void SofaBaseApplication::openInEditor(const QString& fullpath, const int lineno
     if(!settings.contains("DefaultEditorParams"))
         settings.setValue("DefaultEditorParams", "-client ${path}:${lineno}"); // ex. for qtcreator: "-client ${path}:${lineno}"
 
+
     QString path = QFileInfo(fullpath).absoluteFilePath();
+
+    QFileInfo finfo(path);
+    if (!finfo.exists()) {
+        QFile file(path);
+        file.open(QIODevice::NewOnly);
+        if (file.isOpen()) file.close();
+    }
     QString line = std::to_string(lineno).c_str();
 
     QString editor = settings.value("DefaultEditor").toString();
     QStringList args = settings.value("DefaultEditorParams").toString().replace("${path}", path).replace("${lineno}", line).split(" ");
     QProcess process;
     int ret = process.startDetached(editor, args);
-    std::cout << editor.toStdString() << " " << args.join(" ").toStdString() << std::endl;
     if (ret < 0)
     {
         msg_warning("OpenInEditor") << "Failed to launch chosen editor. Check runSofa2.ini";
         QDesktopServices::openUrl(QUrl::fromLocalFile(fullpath));
     }
+}
+
+///
+/// \brief SofaBaseApplication::openInEditorFromUrl
+/// Opens the file pointed in the url with the editor specified in 'DefaultEditor'
+///
+/// \param fullpath substituted by ${path} in the DefaultEditorParams
+/// \param lineno substituted by ${lineno} in the DefaultEditorParams
+///
+void SofaBaseApplication::openInEditorFromUrl(const QUrl& fullpath, const int lineno) const
+{
+    openInEditor(fullpath.path(), lineno);
 }
 
 QString SofaBaseApplication::createFolderIn(const QString& parent)
@@ -337,6 +364,12 @@ bool SofaBaseApplication::copyFile(const QString& source, const QString& destina
 
         return QFile::copy(source, destination);
     }
+}
+
+bool SofaBaseApplication::fileExists(const QString &filepath)
+{
+    QFileInfo finfo(filepath);
+    return finfo.exists();
 }
 
 QImage SofaBaseApplication::screenshotComponent(QQuickItem* item, const QSize& forceSize) const
@@ -513,7 +546,7 @@ ProcessState* SofaBaseApplication::executeProcessAsync(const QString& command, c
 
     ProcessState* processState = new ProcessState(process);
 
-    process->startDetached(command, arguments, url.toLocalFile());
+    process->startDetached(command, arguments, url.path());
     process->waitForFinished();
 
     QByteArray result = process->readAll();
@@ -562,6 +595,118 @@ QString SofaBaseApplication::binaryDirectory() const
 {
     return QCoreApplication::applicationDirPath() + "/";
 }
+
+QString SofaBaseApplication::templatesDirectory() const
+{
+    return QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/");
+}
+
+QString SofaBaseApplication::inspectorsDirectory() const
+{
+    QString templatesDir = templatesDirectory();
+    QDir d(templatesDir);
+    if (!d.exists("inspectors"))
+        d.mkdir("inspectors");
+    return templatesDir + "inspectors/";
+}
+
+QString SofaBaseApplication::assetsDirectory() const
+{
+    QString templatesDir = templatesDirectory();
+    QDir d(templatesDir);
+    if (!d.exists("assets")) d.mkdir("assets");
+    return templatesDir + "assets/";
+}
+
+QString SofaBaseApplication::callbacksDirectory() const
+{
+    QString templatesDir = templatesDirectory();
+    QDir d(templatesDir);
+
+    if (!d.exists("callbacks")) d.mkdir("callbacks");
+    sofapython3::PythonEnvironment::addPythonModulePath(templatesDir.toStdString() + "callbacks/");
+    return templatesDir + "callbacks/";
+}
+
+bool SofaBaseApplication::createInspector(QString file)
+{
+    if (!fileExists(file)) {
+        QFile f(file);
+        f.open(QIODevice::WriteOnly);
+        if (f.isOpen()) {
+            f.write("import QtQuick 2.0                              \n"
+                    "import CustomInspectorWidgets 1.0               \n"
+                    "                                                \n"
+                    "CustomInspector {                               \n"
+                    "    dataDict: {                                 \n"
+                    "        \"Base\": [\"name\",\"componentState\"] \n"
+                    "    }                                           \n"
+                    "}                                               \n"
+                    );
+            f.close();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SofaBaseApplication::createAssetTemplate(QString file)
+{
+    if (!fileExists(file)) {
+        QFile f(file);
+        f.open(QIODevice::WriteOnly);
+        if (f.isOpen()) {
+            f.write("#!/usr/bin/python3                                                                                                          \n"
+                    "                                                                                                                            \n"
+                    "import Sofa.Core                                                                                                            \n"
+                    "import subprocess                                                                                                           \n"
+                    "import os                                                                                                                   \n"
+                    "                                                                                                                            \n"
+                    "# type_string: short asset description string                                                                               \n"
+                    "type_string = 'Unknown file type'                                                                                           \n"
+                    "                                                                                                                            \n"
+                    "# icon_path: url of the asset icon                                                                                          \n"
+                    "icon_path = 'qrc:/icon/ICON_FILE_BLANK.png'                                                                                 \n"
+                    "                                                                                                                            \n"
+                    "# Used for Python scripts, determines whether it is sofa content or not                                                     \n"
+                    "is_sofa_content = False                                                                                                     \n"
+                    "                                                                                                                            \n"
+                    "# Method called to instantiate the asset in the scene graph.                                                                \n"
+                    "#def create(node, assetName, assetPath):                                                                                    \n"
+                    "#    pass                                                                                                                   \n"
+                    "                                                                                                                            \n"
+                    "# Method called to open a third party tool when clicking on 'Open in Editor'. Opens in favorite file editor by default      \n"
+                    "#def openThirdParty(assetPath):                                                                                             \n"
+                    "#    pass                                                                                                                   \n"
+                    );
+            f.close();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SofaBaseApplication::createCallback(QString file)
+{
+    if (!fileExists(file)) {
+        QFile f(file);
+        f.open(QIODevice::WriteOnly);
+        if (f.isOpen()) {
+            f.write("#!/usr/bin/python3\n"
+                    "\n"
+                    "import Sofa.Core\n"
+                    "\n"
+                    "\n"
+                    "def convert(src):\n"
+                    "    return src.value\n"
+                    );
+            f.close();
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void SofaBaseApplication::saveScreenshot(const QString& path)
 {
@@ -630,6 +775,37 @@ int SofaBaseApplication::overrideCursorShape() const
 {
     return QApplication::overrideCursor() ? QApplication::overrideCursor()->shape() : Qt::ArrowCursor;
 }
+
+
+sofaqtquick::SofaProject* SofaBaseApplication::getCurrentProject()
+{
+    return m_currentProject;
+}
+
+void SofaBaseApplication::setCurrentProject(sofaqtquick::SofaProject* newProject)
+{
+    if (m_currentProject)
+        delete m_currentProject;
+    m_currentProject = newProject;
+}
+
+void SofaBaseApplication::setProjectDirectory(const std::string& dir)
+{
+    if (m_currentProject)
+    {
+        std::string directory = sofa::helper::system::DataRepository.getFile(dir);
+        QDir dir(directory.c_str());
+        m_currentProject->setRootDir(QUrl(dir.absolutePath()));
+    }
+    else {
+        msg_error("SofaQtQuickGUI") << "Cannot open project directory: SofaProject not instantiated";
+    }
+}
+std::string SofaBaseApplication::getProjectDirectory()
+{
+    return m_currentProject->getRootDir().path().toStdString();
+}
+
 
 void SofaBaseApplication::setOverrideCursorShape(int newCursorShape)
 {
@@ -706,7 +882,7 @@ int SofaBaseApplication::objectDepthFromRoot(QObject* object)
 
 QString SofaBaseApplication::toLocalFile(const QUrl& url)
 {
-    return url.toLocalFile();
+    return url.isLocalFile() ? url.toLocalFile() : url.path();
 }
 
 void SofaBaseApplication::SetOpenGLDebugContext()
@@ -896,12 +1072,14 @@ void SofaBaseApplication::ApplyBackupSettings(const QString& backupSettingsPath)
 
 void SofaBaseApplication::ApplyDefaultSettings(const QString& defaultSettingsPath, const QString& backupSettingsPath)
 {
-    QString finalDefaultSettingsPath = ":/config/default.ini";
+    std::cout << "applying default settings...:" << std::endl;
+    QString finalDefaultSettingsPath = QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/layouts/default.ini");
     if(!defaultSettingsPath.isEmpty())
         finalDefaultSettingsPath = defaultSettingsPath;
 
     // copy properties of default.ini into the backup and current settings if the settings file does not exist
     QSettings defaultSettings(finalDefaultSettingsPath, QSettings::IniFormat);
+    std::cout << defaultSettings.fileName().toStdString() << std::endl;
     QSettings settings;
     settings.clear();
 
@@ -983,7 +1161,31 @@ void SofaBaseApplication::InitOpenGL()
     GLenum err = glewInit();
     if(0 != err)
         msg_error("SofaQtQuickGUI") << "GLEW Initialization failed with error code:" << err;
+}
 
+void SofaBaseApplication::removePendingDataViewUpdate(QmlDDGNode *request)
+{
+    //auto t = ;
+    auto it = Instance()->m_pendingUpdates.find(request);
+    if(it != Instance()->m_pendingUpdates.end())
+    {
+        Instance()->m_pendingUpdates.erase(it);
+    }
+}
+
+void SofaBaseApplication::requestDataViewUpdate(QmlDDGNode *request)
+{
+    Instance()->m_pendingUpdates[request] = request->m_basedata->getCounter();
+}
+
+void SofaBaseApplication::updateAllDataView()
+{
+    auto& d = Instance()->m_pendingUpdates;
+    for(auto& kv : d)
+    {
+        kv.first->m_sofadata->valueChanged(QVariant());
+    }
+    Instance()->m_pendingUpdates.clear();
 }
 
 void SofaBaseApplication::Instanciate(QQmlApplicationEngine& applicationEngine)
@@ -1019,20 +1221,9 @@ sofaqtquick::bindings::SofaBase* SofaBaseApplication::getSelectedComponent() con
 
 void SofaBaseApplication::setSelectedComponent(sofaqtquick::bindings::SofaBase* selectedComponent)
 {
-    std::cout << "SofaBaseApplication set selected component..." << std::endl;
     if(selectedComponent == nullptr)
     {
-        std::cout << "NULLLLLLLLL!!!!!" << std::endl;
-        if(m_selectedComponent == nullptr)
-            std::cout << "PREVIOUS VALUE WAS ALSO NULLLLLLLLL!!!!!" << std::endl;
-        else {
-            /// This is crazy!
-            /// Something at some point sets the selected component to null.
-            /// The previous value of selectedComponent is valid, yet when I try to prevent setting null,
-            /// the value in QML is still set to null! Even if I emit the signal with a valid SofaBase!
-            /// I don't get it.
-            /// Wierdest thing is: the bug does not seem to appear with anything else than oglModels...
-            std::cout << "PREVIOUS VALUE WAS " << m_selectedComponent->getName() << std::endl;
+        if(m_selectedComponent) {
             setSelectedComponent(new SofaBase(m_selectedComponent));
             return;
         }
@@ -1101,6 +1292,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
     // compute command line arguments
     QCommandLineParser parser;
     QCommandLineOption sceneOption(QStringList() << "s" << "scene", "Load with this scene", "file");
+    QCommandLineOption projectOption(QStringList() << "p" << "project", "Load with this project", "directory");
     QCommandLineOption guiConfigOption(QStringList() << "gc" << "guiconfig", "Load with this GUI configuration (absolute path to an ini file OR a config name)", "guiconfig");
     QCommandLineOption animateOption(QStringList() << "a" << "animate", "Start in animate mode");
     QCommandLineOption fullscreenOption(QStringList() << "f" << "fullscreen", "Fullscreen mode");
@@ -1109,6 +1301,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
     QCommandLineOption logTimeOption(QStringList() << "log", "Log time during simulation");
     
     parser.addOption(sceneOption);
+    parser.addOption(projectOption);
     parser.addOption(guiConfigOption);
     parser.addOption(animateOption);
     parser.addOption(fullscreenOption);
@@ -1140,7 +1333,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
     bool optionConfigFile = false;
 
     //default config file
-    QString configPath = QCoreApplication::applicationDirPath() + "/config/";
+    QString configPath = QCoreApplication::applicationDirPath() + "/config";
     //apply the app settings or use the default.ini settings if it is the first time the user launch the application or use the app.backup.ini in case of application crash
     QSettings::setPath(QSettings::Format::IniFormat, QSettings::Scope::UserScope, configPath);
 
@@ -1158,7 +1351,7 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
         else
         {
             //second search in the config template dir (with or without the .ini suffix)
-            QString qrcPath = ":/config/";
+            QString qrcPath = ":/config/templates/layouts/";
             QString configName = guiConfigOptionValue.section(".", 0, 0) + ".ini";
             qDebug() << qrcPath + configName;
             QFileInfo fileInfo2(qrcPath + configName);
@@ -1178,11 +1371,18 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
 
     if (optionConfigFile)
     {
-        //copy content of the given config file into the "system", as this one cant be changed later on
+        // copy content of the given layout config file into the "system" config file, under the "layout" group, as the given layout must stay read only
         QSettings optionConfigSettings(configPath, QSettings::Format::IniFormat);
         QSettings settings;
-        settings.clear();
-
+        for (auto group : settings.childGroups())
+        {
+            if (group.startsWith("ui"))
+            {
+                settings.beginGroup(group);
+                settings.remove("");
+                settings.endGroup();
+            }
+        }
         CopySettings(optionConfigSettings, settings);
     }
 
@@ -1201,6 +1401,8 @@ bool SofaBaseApplication::DefaultMain(QApplication& app, QQmlApplicationEngine &
         if(!window)
             continue;
 
+        if (parser.isSet(projectOption))
+            OurInstance->getCurrentProject()->setRootDir(parser.value(projectOption));
         if(parser.isSet(animateOption) || parser.isSet(sceneOption))
         {
             SofaBaseScene* sofaScene = object->findChild<SofaBaseScene*>();

@@ -24,7 +24,9 @@ public:
 
     virtual QString getDisplayText() const override;
 
-    static sofa::core::objectmodel::BaseData* getData();
+    static sofa::core::objectmodel::BaseData* GetData();
+    bool getValue(QVector3D& direction, QQuaternion& orientation) const;
+    void setValue(const QQuaternion&);
 
 
 
@@ -38,11 +40,11 @@ private:
 
 
 private:
-    void drawXAxis(const QVector3D& pos);
-    void drawYAxis(const QVector3D& pos);
-    void drawZAxis(const QVector3D& pos);
-    void drawCamAxis(const QVector3D& pos);
-    void drawTrackballAxis(const QVector3D& pos);
+    void drawXAxis(const QVector3D& pos, sofa::core::visual::DrawToolGL& dt);
+    void drawYAxis(const QVector3D& pos, sofa::core::visual::DrawToolGL& dt);
+    void drawZAxis(const QVector3D& pos, sofa::core::visual::DrawToolGL& dt);
+    void drawCamAxis(const QVector3D& pos, sofa::core::visual::DrawToolGL& dt);
+    void drawTrackballAxis(const QVector3D& pos, sofa::core::visual::DrawToolGL& dt);
 
 
     float radius;
@@ -51,8 +53,6 @@ private:
     float width;
     float height;
 
-
-    sofa::core::visual::DrawToolGL drawtools;
     bindings::SofaBase* obj;
     sofa::Data<sofa::defaulttype::Vec3d>* data;
     Camera* cam;

@@ -21,14 +21,17 @@ using sofapython3::PythonFactory;
 #include <QWindow>
 #include <QInputDialog>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QFileSystemWatcher>
 #include <QTimer>
+#include <QSettings>
 
 #include "Assets/DirectoryAsset.h"
 #include "Assets/AssetFactory.h"
 using sofaqtquick::AssetFactory;
 
 #include <fstream>
+#include <unistd.h>
 
 /// This is needed to implement filtering of msg_info.
 namespace sofa::helper::logging
@@ -108,13 +111,35 @@ void SofaProject::setRootDir(const QUrl& rootDir)
 {
     if(rootDir.isEmpty())
         return;
+
+    if (m_projectSettings != nullptr)
+    {
+        m_projectSettings->sync();
+        delete m_projectSettings;
+    }
+    m_projectSettings = new QSettings(rootDir.path()+"/"+QFileInfo(rootDir.path()).baseName()+".ini", QSettings::IniFormat);
+
     m_rootDir = rootDir;
     m_assets.clear();
     m_directories.clear();
 
-    msg_info() << "Setting root directory to '" << rootDir.toString().toStdString()<<"'";
+    chdir(m_rootDir.path().toStdString().c_str());
+    msg_info() << "Setting root directory to '" << m_rootDir.path().toStdString()<<"'";
     QFileInfo root = QFileInfo(m_rootDir.path());
     scan(root);
+    emit rootDirChanged(m_rootDir);
+    emit rootDirPathChanged(getRootDirPath());
+
+    QDir dir(m_rootDir.path());
+    QUrl url("file://" + m_rootDir.path() + "/scenes/" + dir.dirName() + ".py");
+    auto lastOpened = m_projectSettings->value("lastOpened", "").toString();
+    if (lastOpened != "" && QFileInfo(lastOpened).exists())
+        url = dir.absoluteFilePath(lastOpened);
+    else if (QFileInfo(url.path()).exists())
+        m_projectSettings->setValue("lastOpened", QVariant::fromValue(dir.relativeFilePath(url.path())));
+    if (m_currentScene)
+        m_currentScene->setSource(url);
+
 }
 
 const QUrl& SofaProject::getRootDir() { return m_rootDir;  }
@@ -124,6 +149,120 @@ void SofaProject::setDebug(bool state) {
     m_debug = state;
     emit debugChanged(state);
 }
+
+
+
+
+//QUrl SofaProject::chooseProjectDir(QString windowTitle, QString baseDir, int opts)
+//{
+//    auto opt = QFileDialog::Options(opts) | QFileDialog::DontUseNativeDialog;
+//    return QFileDialog::getExistingDirectoryUrl(nullptr, windowTitle, QUrl(baseDir), opt);
+//}
+
+//QUrl SofaProject::getOpenFile(QString windowTitle, QString baseDir, int opts, QString nameFilters)
+//{
+//    auto opt = QFileDialog::Options(opts) | QFileDialog::DontUseNativeDialog;
+//    return QFileDialog::getOpenFileUrl(nullptr, windowTitle, baseDir, nameFilters, nullptr, opt);
+//}
+
+//QUrl SofaProject::getSaveFile(QString windowTitle, QString baseDir, int opts, QString nameFilters)
+//{
+//    auto opt = QFileDialog::Options(opts) | QFileDialog::DontUseNativeDialog;
+//    return QFileDialog::getSaveFileUrl(nullptr, windowTitle, baseDir, nameFilters, nullptr, opt);
+//}
+
+
+void SofaProject::newProject()
+{
+    auto options = QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog;
+    auto folder = QFileDialog::getExistingDirectory(nullptr, tr("Choose project location:"), getRootDir().path(), options);
+    QDir dir(folder);
+    if (dir.exists() && dir.count() <= 2) // "." and ".." are counted here...
+    {
+        auto scn = createProject(folder);
+        setRootDir(folder);
+        m_currentScene->setSource(scn);
+    }
+    else
+    {
+        QMessageBox::critical(nullptr, "Error:", "New project folder must be empty", QMessageBox::StandardButton::Close);
+    }
+}
+
+void SofaProject::openProject()
+{
+    auto options = QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog | QFileDialog::ReadOnly;
+    auto projectDir = QFileDialog::getExistingDirectory(nullptr, tr("Choose project location:"), getRootDir().path(), options);
+    if (projectDir == "")
+        return;
+
+    setRootDir(projectDir);
+}
+
+void SofaProject::importProject()
+{
+    auto options = QFileDialog::DontUseNativeDialog | QFileDialog::ReadOnly;
+    QString filters("Zip archive (*.zip)");
+    auto file = QFileDialog::getOpenFileUrl(nullptr, tr("Choose project archive:"), getRootDir().toLocalFile(), filters, nullptr,  options);
+    if (!file.isValid())
+        return;
+    auto projectDir = importProject(file);
+
+    setRootDir(projectDir);
+}
+
+QString SofaProject::importProject(const QUrl& srcUrl)
+{
+    QString src = srcUrl.path();
+    QFileInfo finfo(src);
+    if (finfo.exists() && finfo.suffix() == "zip")
+    {
+        auto folder = chooseProjectDir(tr("Choose Project Destination"), getRootDir().toLocalFile());
+
+        if (folder.path() == "")
+            return "Error: no destination picked";
+
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        QApplication::processEvents();
+        QProcess process;
+        process.start("/usr/bin/unzip", QStringList() << src << "-d" << folder.path());
+        process.waitForFinished(-1);
+        QApplication::restoreOverrideCursor();
+        return folder.path();
+    }
+    return "Error: does not exist or isn't zip file";
+}
+
+void SofaProject::exportProject()
+{
+    auto options = QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog | QFileDialog::ReadOnly;
+    auto file = getSaveFile(tr("Export Project:"), getRootDir().toLocalFile(), int(options), "Zip Archive (.zip)");
+    QProcess process;
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    QApplication::processEvents();
+
+    // Guarantee we chdir'ed in the project directory (SetDirectory fetches the parent dir, so we need to append a dummy filename to the path.... -_-
+    sofa::helper::system::SetDirectory dir(getRootDir().path().toStdString() + "/DummyFile");
+    // retrieve the relative path to the zip archive from the root dir:
+    QString relpath = QDir(getRootDir().toLocalFile()).relativeFilePath(file.path());
+
+    // Zip the current dir into the given file archive
+    process.start("/usr/bin/zip", QStringList() << "-r" << relpath << ".");
+    process.waitForFinished(-1);
+    QApplication::restoreOverrideCursor();
+}
+
+void SofaProject::saveSceneAsNewProject()
+{
+
+}
+
+
+
+
+
+
+
 
 
 void SofaProject::onDirectoryChanged(const QString &path)
@@ -177,6 +316,9 @@ void SofaProject::updateDirectory(const QFileInfo& finfo)
         }
     }
 
+    if (!m_directories[filePath].get())
+        return;
+
     removeDirEntries(*m_directories[filePath].get());
 
     /// Update the content of the directory cache.
@@ -208,7 +350,8 @@ void SofaProject::removeDirEntries(DirectoryAsset& folder)
             {
                 msg_info() << "removing: " << cfinfo.absoluteFilePath().toStdString();
                 m_assets.remove(cfinfo.absoluteFilePath());
-            }else
+            }
+            else
             {
                 msg_info() << "removing: " << cfinfo.absoluteFilePath().toStdString();
                 removeDirEntries(*m_directories[cfinfo.absoluteFilePath()].get());
@@ -220,7 +363,11 @@ void SofaProject::removeDirEntries(DirectoryAsset& folder)
 
 bool SofaProject::isFileExcluded(const QFileInfo &finfo)
 {
-    return finfo.fileName() == "." || finfo.fileName() == ".." || finfo.fileName() == "__pycache__";
+    return finfo.fileName() == "." || finfo.fileName() == ".."  // . and ..
+            || finfo.fileName() == "__pycache__"  // cached python folder
+            || finfo.fileName().endsWith(".pyc")  // precompiled python scripts
+            || (finfo.fileName().startsWith("#") && finfo.fileName().endsWith("#")) // autosaved emacs files
+            || finfo.fileName().endsWith("~");  // backup emacs files
 }
 
 void SofaProject::scan(const QUrl& folder)
@@ -240,14 +387,15 @@ void SofaProject::scan(const QFileInfo& file)
     if (m_directories.contains(filePath))
         return;
 
-    msg_info() << "starting monitoring: " << file.absoluteFilePath().toStdString() ;
+    msg_info() << "starting monitoring: " << file.absoluteFilePath().toStdString();
     m_watcher->addPath(file.absoluteFilePath());
 
     /// The file needs to be added
     if(file.isFile())
     {
-        msg_info() << "register asset: " << file.absoluteFilePath().toStdString() ;
+        msg_info() << "register asset: " << file.absoluteFilePath().toStdString();
         m_assets[filePath] = AssetFactory::createInstance(file.filePath(), file.suffix());
+        auto t = m_assets[filePath]->isScene() ? "scenes" : m_assets[filePath]->getTypeString().replace(" ", "_");
         return;
     }
 
@@ -279,13 +427,39 @@ QString readScriptTemplate(QString name, QString file) {
     return s.replace("%ComponentName%", name);
 }
 
+QUrl SofaProject::chooseProjectDir(QString windowTitle, QString baseDir, int opts)
+{
+    auto opt = QFileDialog::Options(opts) | QFileDialog::DontUseNativeDialog;
+    return QFileDialog::getExistingDirectoryUrl(nullptr, windowTitle, QUrl(baseDir), opt);
+}
+
+QUrl SofaProject::getOpenFile(QString windowTitle, QString baseDir, int opts, QString nameFilters)
+{
+    auto opt = QFileDialog::Options(opts) | QFileDialog::DontUseNativeDialog;
+    return QFileDialog::getOpenFileUrl(nullptr, windowTitle, baseDir, nameFilters, nullptr, opt);
+}
+
+QUrl SofaProject::getSaveFile(QString windowTitle, QString baseDir, int opts, QString nameFilters)
+{
+    auto opt = QFileDialog::Options(opts) | QFileDialog::DontUseNativeDialog;
+    return QFileDialog::getSaveFileUrl(nullptr, windowTitle, baseDir, nameFilters, nullptr, opt);
+}
+
+
 QString SofaProject::createProject(const QUrl& dir)
 {
     msg_error_when(createProjectTree(dir), "SofaProject::createProject()")
             << "Could not create directory tree for the new project";
 
+    if (m_projectSettings != nullptr)
+    {
+        m_projectSettings->sync();
+        delete m_projectSettings;
+    }
+    m_projectSettings = new QSettings(dir.path()+"/"+QFileInfo(dir.path()).baseName()+".ini", QSettings::IniFormat);
+
     QString fileName = dir.path() + "/scenes/" + QFileInfo(dir.path()).baseName() + ".py";
-    QString scriptContent = readScriptTemplate(QFileInfo(dir.path()).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyScene.py"));
+    QString scriptContent = readScriptTemplate(QFileInfo(dir.path()).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyScene.py"));
     QFile file(fileName);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
@@ -304,72 +478,10 @@ bool SofaProject::createProjectTree(const QUrl& dir)
         d.mkpath(".");
 
     bool ret = d.mkdir("assets");
-    ret = ret & d.mkdir("assets");
     ret = ret & d.mkdir("scenes");
     ret = ret & d.mkdir("assets/resources");
     ret = ret & d.mkdir("assets/scripts");
     return ret;
-}
-
-QString SofaProject::importProject(const QUrl& srcUrl)
-{
-    QString src = srcUrl.path();
-    QFileInfo finfo(src);
-    if (finfo.exists() && finfo.suffix() == "zip")
-    {
-        QFileDialog dialog(nullptr, tr("Choose Project Destination"), "~/Documents", tr("All folders (*)"));
-        dialog.setFileMode(QFileDialog::Directory);
-        dialog.setOption(QFileDialog::ShowDirsOnly);
-        if (dialog.exec())
-        {
-            QList<QUrl> folders = dialog.selectedUrls();
-            if (folders.empty())
-                return "Error: no destination picked";
-            QApplication::setOverrideCursor(Qt::WaitCursor);
-            QApplication::processEvents();
-            QString dest = folders.first().path();
-            QProcess process;
-            process.start("/usr/bin/unzip", QStringList() << src << "-d" << dest);
-            process.waitForFinished(-1);
-            QApplication::restoreOverrideCursor();
-
-            return dest + "/" + finfo.baseName();
-        }
-        return "Error: could not open Dialog";
-    }
-    return "Error: does not exist or isn't zip file";
-}
-
-bool SofaProject::exportProject(const QUrl& srcUrl)
-{
-    QString src = srcUrl.toLocalFile();
-    QFileDialog dialog(nullptr, tr("Choose Project Destination"), "~/Documents");
-    dialog.setFileMode(QFileDialog::Directory);
-    dialog.setOption(QFileDialog::ShowDirsOnly);
-    dialog.setAcceptMode(QFileDialog::AcceptOpen);
-    if (dialog.exec())
-    {
-        QList<QUrl> folders = dialog.selectedUrls();
-        if (folders.empty())
-            return false;
-        QString dest = folders.first().path();
-        QProcess process;
-
-        QApplication::setOverrideCursor(Qt::WaitCursor);
-        QApplication::processEvents();
-        QString filePath = QFileInfo(src).filePath();
-        QString baseName = QFileInfo(src).baseName();
-        QString fileName = QFileInfo(src).fileName();
-        process.start("/bin/ln", QStringList() << "-s" << filePath << fileName);
-        process.waitForFinished(-1);
-        process.start("/usr/bin/zip", QStringList() << "-r" << QString(dest + "/" + baseName + ".zip") << fileName);
-        process.waitForFinished(-1);
-        process.start("/bin/rm", QStringList() << fileName);
-        process.waitForFinished(-1);
-        QApplication::restoreOverrideCursor();
-        return true;
-    }
-    return false;
 }
 
 void SofaProject::updateAsset(const QFileInfo& file)
@@ -397,15 +509,12 @@ const QString SofaProject::getFileCount(const QUrl& url)
 
 Asset* SofaProject::getAsset(const QString& filePath)
 {
-    const auto& it = m_assets.find(filePath);
-    if (it != m_assets.end())
+    auto val = m_assets.value(filePath);
+    if (val != nullptr)
     {
-        msg_info() << "getAsset for: " << filePath.toStdString() << " => " << it.value();
-        if(it.value() != nullptr)
-            return it.value().get();
+        msg_info() << "getAsset for: " << filePath.toStdString();
+        return val.get();
     }
-    msg_info() << "getAsset not asset for: " << filePath.toStdString() ;
-
     return nullptr;
 }
 
@@ -416,8 +525,9 @@ QStringList SofaProject::getSupportedTypes() const
 
 bool SofaProject::createPrefab(SofaBase* node)
 {
-    QFileDialog dialog(nullptr, tr("Save as Prefab"), this->getRootDir().toString(), tr("All files (*)"));
+    QFileDialog dialog(nullptr, tr("Save as Prefab"), this->getRootDir().path(), tr("All files (*)"));
     dialog.setFileMode(QFileDialog::AnyFile);
+    dialog.setOption(QFileDialog::DontUseNativeDialog);
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     bool ret;
     QString name = QInputDialog::getText(nullptr, "Prefab Name:", "Name: ", QLineEdit::Normal, node->getName(), &ret);
@@ -443,41 +553,41 @@ bool SofaProject::createPrefab(SofaBase* node)
 
 QString SofaProject::createTemplateFile(const QString& directory, const QString& templateType)
 {
-    QString scriptContent = "";
-    QString extension = "py";
-    if (templateType == "Canvas")
-    {
-        extension ="qml";
-        scriptContent = readScriptTemplate("EmptyCanvas", QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyCanvas.qml"));
-    }
-    else if (templateType == "Controller")
-        scriptContent = readScriptTemplate("EmptyController", QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyController.py"));
-    else if (templateType == "DataEngine")
-        scriptContent = readScriptTemplate("EmptyDataEngine", QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyDataEngine.py"));
-    else if (templateType == "ForceField")
-        scriptContent = readScriptTemplate("EmptyForceField", QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyForceField.py"));
-    else if (templateType == "Prefab")
-        scriptContent = readScriptTemplate("EmptyPrefab", QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyPrefab.py"));
-    else if (templateType == "Scene")
-        scriptContent = readScriptTemplate("EmptyScene", QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyScene.py"));
-
     QString dir;
     QFileInfo f(directory);
     dir = (f.isDir()) ? directory : f.dir().path();
-    QFileDialog dialog;
-    dialog.setFileMode(QFileDialog::AnyFile);
-    QString strfile = dialog.getSaveFileName(nullptr, "Create New File", dir, "QtQuick UI (*."+extension+")");
-    QFile file(strfile);
+
+    QString extension = "py";
+    if (templateType == "Canvas")
+        extension ="qml";
+
+    QFile file(getSaveFile("New " + templateType, "file://"+dir, 0, "Asset file (*." + extension + ")").path());
     if (file.open(QIODevice::WriteOnly))
     {
+
+        QString scriptContent = "";
+        if (templateType == "Canvas")
+            scriptContent = readScriptTemplate(QFileInfo(file).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyCanvas.qml"));
+        else if (templateType == "Controller")
+            scriptContent = readScriptTemplate(QFileInfo(file).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyController.py"));
+        else if (templateType == "DataEngine")
+            scriptContent = readScriptTemplate(QFileInfo(file).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyDataEngine.py"));
+        else if (templateType == "ForceField")
+            scriptContent = readScriptTemplate(QFileInfo(file).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyForceField.py"));
+        else if (templateType == "Prefab")
+            scriptContent = readScriptTemplate(QFileInfo(file).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyPrefab.py"));
+        else if (templateType == "Scene")
+            scriptContent = readScriptTemplate(QFileInfo(file).baseName(), QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyScene.py"));
+
+
         QTextStream stream(&file);
         stream << scriptContent << endl;
 
         file.close();
-        return strfile;
+        return file.fileName();
     }
     else {
-        msg_error("SofaProject") << "Could not open file " << strfile.toStdString();
+        msg_error("SofaProject") << "Could not open file " << file.fileName().toStdString();
     }
     return QString();
 }
@@ -489,17 +599,17 @@ bool SofaProject::createPythonPrefab(QString name, SofaBase* node)
     // Maybe not the most pertinent method name...
     QString scriptContent = "";
     if (name.endsWith("Controller"))
-        scriptContent = readScriptTemplate(name, QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyController.py"));
+        scriptContent = readScriptTemplate(name, QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyController.py"));
     else if (name.endsWith("DataEngine"))
-        scriptContent = readScriptTemplate(name, QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyDataEngine.py"));
+        scriptContent = readScriptTemplate(name, QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyDataEngine.py"));
     else if (name.endsWith("ForceField"))
-        scriptContent = readScriptTemplate(name, QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/emptyForceField.py"));
+        scriptContent = readScriptTemplate(name, QString::fromStdString(sofa::helper::Utils::getExecutableDirectory() + "/config/templates/scripts/emptyForceField.py"));
     else
         return false;
 
     if (scriptContent == "")
         return false;
-    QString filepath = getRootDir().toLocalFile() + "/assets/scripts/" + name.toLower() + ".py";
+    QString filepath = getRootDir().path() + "/assets/scripts/" + name.toLower() + ".py";
     QFile f(filepath);
     if (f.open(QIODevice::WriteOnly))
     {
@@ -521,27 +631,6 @@ bool SofaProject::createPythonPrefab(QString name, SofaBase* node)
     }
     msg_error("SofaProject") << "could not open " << filepath.toStdString() << " in write-only.";
     return false;
-}
-
-void SofaProject::saveScene(const QString filepath, SofaNode* node)
-{
-    sofapython3::PythonEnvironment::executePython([this, filepath, node]()
-    {
-        std::string ppath = filepath.toStdString();
-        py::module SofaQtQuick = py::module::import("SofaQtQuick");
-        SofaQtQuick.reload();
-
-        py::object rootNode = PythonFactory::toPython(node->self());
-
-        py::str file(ppath);
-        bool ret =  py::cast<bool>(SofaQtQuick.attr("saveAsPythonScene")(file, rootNode));
-        if (ret) {
-            msg_info("runSofa2") << "File saved to "  << ppath;
-        } else {
-            msg_error("runSofa2") << "Could not save to file "  << ppath;
-        }
-    });
-    return;
 }
 
 

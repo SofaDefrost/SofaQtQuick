@@ -29,7 +29,7 @@ import SofaBaseApplicationSingleton 1.0
 import SofaMessageList 1.0
 import SofaViewListModel 1.0
 import SofaProject 1.0
-import GraphView 1.0
+//import GraphView 1.0
 import SofaBaseScene 1.0
 import SofaInteractors 1.0
 import SofaBasics 1.0
@@ -38,7 +38,6 @@ Item //
 {
     id: root
 
-
     ////////////////////////////////////////////////// SOFASCENE
     property var sofaScene: null
 
@@ -46,47 +45,12 @@ Item //
 
     property var style : MainStyle
 
-    property var selectedManipulator : sofaScene.selectedManipulator
-    onSelectedManipulatorChanged: {
-        if (selectedManipulator !== null) {
-            sofaScene.selectedManipulator = selectedManipulator
-        }
-    }
+    ////////////////////////////////////////////////// SELECTED COMPONENT
     property var selectedComponent : SofaBaseApplicationSingleton.selectedComponent
     onSelectedComponentChanged: {
-        SofaBaseApplicationSingleton.selectedComponent = selectedComponent
+        if (SofaBaseApplicationSingleton.selectedComponent !== selectedComponent)
+            SofaBaseApplicationSingleton.selectedComponent = selectedComponent
     }
-
-//    /// Bind the graph view to the currently selected component
-//    Binding{
-//        target: GraphView
-//        property: "selectedComponent"
-//        value: selectedComponent
-//    }
-
-
-//    PropertyAnimation
-//    {
-//        id: testAnim
-//        target: GraphView
-//        property: "viewPosition"
-//        from: Qt.vector2d(0,0)
-//        to: Qt.vector2d(100,100)
-//        duration: 1
-//    }
-
-//    Connections
-//    {
-//        target: sofaScene
-//        onStatusChanged: {
-//            if(sofaScene.status === SofaBaseScene.Ready)
-//            {
-//                GraphView.rootNode = sofaScene.root()
-//                testAnim.start()
-//            }
-//        }
-//    }
-
 
     /// Connect to this signal to be notified when a component need to be emphasized.
     signal signalComponent(string objectpath)
@@ -101,6 +65,11 @@ Item //
         SofaBaseApplicationSingleton.openInEditor(fullpath, line)
     }
 
+    function openInEditorFromUrl(urlToPath, line)
+    {
+        SofaBaseApplicationSingleton.openInEditorFromUrl(urlToPath, line)
+    }
+
     function openInExplorer(fullpath)
     {
         SofaBaseApplicationSingleton.openInExplorer(fullpath)
@@ -109,6 +78,51 @@ Item //
     function openInTerminal(fullpath)
     {
         SofaBaseApplicationSingleton.openInTerminal(fullpath)
+    }
+
+    function copyFile(src, dest)
+    {
+        SofaBaseApplicationSingleton.copyFile(src, dest)
+    }
+
+    function fileExists(file)
+    {
+        return SofaBaseApplicationSingleton.fileExists(file);
+    }
+
+    function binaryDirectory()
+    {
+        return SofaBaseApplicationSingleton.binaryDirectory();
+    }
+
+    function templatesDirectory()
+    {
+        return SofaBaseApplicationSingleton.templatesDirectory();
+    }
+
+    function assetsDirectory()
+    {
+        return SofaBaseApplicationSingleton.assetsDirectory();
+    }
+
+    function inspectorsDirectory()
+    {
+        return SofaBaseApplicationSingleton.inspectorsDirectory();
+    }
+
+    function callbacksDirectory()
+    {
+        return SofaBaseApplicationSingleton.callbacksDirectory();
+    }
+
+    function createInspector(file)
+    {
+        return SofaBaseApplicationSingleton.createInspector(file);
+    }
+
+    function createAssetTemplate(file)
+    {
+        return SofaBaseApplicationSingleton.createAssetTemplate(file);
     }
 
     /// Returns the absolute position of the mouse in a mouseArea
@@ -178,6 +192,11 @@ Item //
     property var currentProject : SofaProject {
         property var selectedAsset: null
         rootDir: projectSettings.currentProject()
+
+        scene: sofaScene
+        Component.onCompleted: {
+            SofaBaseApplicationSingleton.currentProject = currentProject;
+        }
     }
 
     property var projectSettings: Settings {
@@ -186,6 +205,7 @@ Item //
         property string recentProjects
 
         function addRecent(path) {
+            path = path.toString().replace("file://", "").replace("qrc:", "")
             recentProjects = path + ";" + recentProjects.replace(path + ";", "");
         }
         function currentProject() {
@@ -203,6 +223,7 @@ Item //
         property string sofaSceneRecents      // recently opened sofa scenes
 
         function addRecent(path) {
+            path = path.toString().replace("file://", "").replace("qrc:", "")
             sofaSceneRecents = path + ";" + sofaSceneRecents.replace(path + ";", "");
         }
 
@@ -326,7 +347,7 @@ Item //
 
             uiIds = uiIds.replace(";" + uiId.toString() + ";", ";");
 
-            root.clearSettingGroup("ui_" + uiId.toString());
+            SofaBaseApplicationSingleton.clearSettingGroup("ui_" + uiId.toString());
         }
 
         function replace(previousUiId, uiId) {
@@ -354,10 +375,8 @@ Item //
 
     ////////////////////////////////////////////////// INTERACTOR
 
-    property UserInteractor interactorComponent: UserInteractor_CameraMode {
-        id: interactor
-        Component.onCompleted: interactor.init()
-    }
+    property UserInteractor interactorComponent
+
 
     ////////////////////////////////////////////////// SCREENSHOT
 

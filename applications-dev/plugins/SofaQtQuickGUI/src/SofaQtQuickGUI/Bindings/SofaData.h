@@ -35,9 +35,12 @@ namespace sofaqtquick::bindings
 
 namespace _sofadata_
 {
-class QmlDDGNode : public QObject, public sofa::core::objectmodel::DDGNode
+
+using sofa::core::objectmodel::BaseData;
+
+class SofaData;
+class QmlDDGNode : public sofa::core::objectmodel::DDGNode
 {
-    Q_OBJECT
 public:
     virtual void notifyEndEdit(const sofa::core::ExecParams* params = nullptr) override;
 
@@ -45,17 +48,13 @@ public:
     void update() override ;
     sofa::core::objectmodel::BaseData* getData() const override {return nullptr;}
     sofa::core::objectmodel::Base* getOwner() const override {return nullptr;}
-
     const std::string& getName() const override  { return name; }
 
-signals:
-    void valueChanged(const QVariant& newValue);
 public:
-    sofa::core::objectmodel::BaseData* self;
+    sofa::core::objectmodel::BaseData* m_basedata;
+    SofaData* m_sofadata;
     const std::string name {"QmlDDGNode"};
 };
-
-using sofa::core::objectmodel::BaseData;
 
 class SofaData : public QObject
 {
@@ -68,6 +67,7 @@ class SofaData : public QObject
     Q_PROPERTY(QString ownerClass READ getOwnerClass)
     Q_PROPERTY(QVariantMap properties READ getProperties NOTIFY propertiesChanged)
     Q_PROPERTY(bool isReadOnly READ isReadOnly NOTIFY readOnlyChanged)
+    Q_PROPERTY(bool persistent READ isPersistent WRITE setPersistent NOTIFY persistentChanged)
 
     Q_PROPERTY(QString linkPath READ getLinkPath NOTIFY linkPathChanged)
     Q_PROPERTY(SofaData* parent READ getParent WRITE setParent NOTIFY parentChanged)
@@ -85,12 +85,15 @@ public:
     Q_INVOKABLE QString getHelp() const;
     Q_INVOKABLE bool isSet() const;
     Q_INVOKABLE bool isReadOnly() const;
+    Q_INVOKABLE bool isPersistent() const;
     Q_INVOKABLE bool isAutoLink() const;
     Q_INVOKABLE QString getGroup() const;
     Q_INVOKABLE QString getOwnerClass() const;
 
+    Q_INVOKABLE void setPersistent(bool);
     Q_INVOKABLE bool setValue(const QVariant& getValue);
     Q_INVOKABLE bool setLink(const QString& path);
+    Q_INVOKABLE bool tryLinkingIncompatibleTypes(const QString& path);
     Q_INVOKABLE QString getLinkPath()const;
     Q_INVOKABLE bool isLinkValid(const QString& path);
     Q_INVOKABLE void setParent(SofaData* parent);
@@ -99,10 +102,10 @@ public:
 
     Q_INVOKABLE int getCounter() const;
     Q_INVOKABLE void _disconnect() {
-        disconnect(&m_ddgnode, &QmlDDGNode::valueChanged, this, &SofaData::valueChanged);
+        //disconnect(&m_ddgnode, &QmlDDGNode::valueChanged, this, &SofaData::valueChanged);
     }
     Q_INVOKABLE void _connect() {
-        connect(&m_ddgnode, &QmlDDGNode::valueChanged, this, &SofaData::valueChanged);
+        //    connect(&m_ddgnode, &QmlDDGNode::valueChanged, this, &SofaData::valueChanged);
     }
 
     [[deprecated("Remove, use directly the object")]]
@@ -116,12 +119,13 @@ public:
 signals:
     void valueChanged(const QVariant& newValue);
     void readOnlyChanged(const bool);
+    void persistentChanged(const bool);
     void valueTypeChanged(const QString newValue);
     void helpChanged(const QString newValue);
     void nameChanged(const QString newValue);
     void linkPathChanged(const QString newValue);
     void propertiesChanged(const QVariantMap newValues);
-    void parentChanged(const SofaData* newParent);
+    void parentChanged(SofaData* newParent);
 
 private:
     BaseData* m_self {nullptr};
@@ -129,8 +133,6 @@ private:
     QmlDDGNode m_ddgnode;
 
     sofa::core::objectmodel::DataCallback m_forwardEventToQml;
-
-public:
 };
 }
 

@@ -28,6 +28,9 @@ using sofa::core::objectmodel::BaseObject;
 #include <sofa/core/objectmodel/BaseNode.h>
 using sofa::core::objectmodel::BaseNode;
 
+#include <sofa/core/objectmodel/DataFileName.h>
+using sofa::core::objectmodel::DataFileName;
+
 #include <sofa/defaulttype/DataTypeInfo.h>
 using sofa::defaulttype::AbstractTypeInfo;
 
@@ -35,13 +38,20 @@ using sofa::defaulttype::AbstractTypeInfo;
 #include "../DataHelper.h"
 using sofaqtquick::helper::convertDataInfoToProperties;
 
+#include <QMessageBox>
+#include <QInputDialog>
+
+#include <SofaQtQuickGUI/SofaBaseApplication.h>
+using sofaqtquick::SofaBaseApplication;
+#include <SofaPython3/PythonFactory.h>
+
 namespace sofaqtquick::bindings::_sofadata_
 {
 
 void QmlDDGNode::notifyEndEdit(const sofa::core::ExecParams *params)
 {
     DDGNode::notifyEndEdit(params);
-    emit valueChanged(QVariant(0));
+    SofaBaseApplication::requestDataViewUpdate(this);
 }
 
 void QmlDDGNode::update(){}
@@ -49,17 +59,16 @@ void QmlDDGNode::update(){}
 SofaData::SofaData(BaseData* self)
 {
     m_self = self;
-    m_ddgnode.self=self;
-
-    /// Connect a dedicated node as output
+    m_ddgnode.m_sofadata = this;
+    m_ddgnode.m_basedata = self;
     m_self->addOutput(&m_ddgnode);
-    connect(&m_ddgnode, &QmlDDGNode::valueChanged, this, &SofaData::valueChanged);
 }
 
 SofaData::~SofaData()
 {
+    /// Register a new data view
     m_self->delOutput(&m_ddgnode);
-    disconnect(&m_ddgnode, &QmlDDGNode::valueChanged, this, &SofaData::valueChanged);
+    SofaBaseApplication::removePendingDataViewUpdate(&m_ddgnode);
 }
 
 bool SofaData::hasParent() const
@@ -76,21 +85,20 @@ SofaData* SofaData::getParent() const
 
 void SofaData::setParent(SofaData* data)
 {
-    m_self->setParent(data->m_self, data->getLinkPath().toStdString());
+    if (data)
+        m_self->setParent(data->m_self, data->getLinkPath().toStdString());
+    else m_self->setParent(nullptr);
     emit parentChanged(data);
 }
 
 QVariant SofaData::getValue()
 {
-    //std::cout << "SofaData::getValue: " << rawData()->getName()
-    //          << " counter:" << rawData()->getCounter() << std::endl;
     m_previousValue = sofaqtquick::helper::createQVariantFromData(m_self);
     return m_previousValue;
 }
 
 bool SofaData::setValue(const QVariant& value)
 {
-    //std::cout << "Trying to setValue: " << value.toString().toStdString() << " counter:" << rawData()->getCounter() << std::endl;
     if(value != m_previousValue)
     {
         _disconnect();
@@ -179,6 +187,65 @@ bool SofaData::setLink(const QString& path)
     return false;
 }
 
+/// This method tries to link 2 datafields of incompatible types by using a python conversion macro
+/// The function first tries to import a module named "srcType2dstType"
+/// If the module exists, create a callback in dstData's Owner, named dstDataName_srcType2dstType,
+///  that links srcData to dstData by calling the conversion macro in the python script
+/// Otherwise, we let the user create the macro in the callbacksDirectory for later use.
+bool SofaData::tryLinkingIncompatibleTypes(const QString& path)
+{
+    Base* owner = rawData()->getOwner();
+    BaseNode* root = nullptr;
+    if (owner->toBaseNode() != nullptr)
+        root = owner->toBaseNode()->getRoot();
+    if (owner->toBaseObject() != nullptr)
+        root = owner->toBaseObject()->getContext()->getRootContext()->toBaseNode();
+    BaseData* srcData = sofaqtquick::helper::findData(root, path);
+    if (srcData)
+    {
+        SofaBaseApplication::Instance()->callbacksDirectory(); // just making sure the pythonPath contains the callbacks folder...
+        BaseData* dstData = rawData();
+        bool ret = false;
+        sofapython3::PythonEnvironment::executePython([root, srcData, dstData, &ret](){
+            QString srcType = srcData->getValueTypeString().c_str();
+            QString dstType = dstData->getValueTypeString().c_str();
+            auto modulename = srcType.replace("<", "_").replace(">", "_").toStdString() + "2" + dstType.replace("<", "_").replace(">", "_").toStdString();
+            sofapython3::PythonEnvironment::runString("import sys\nprint(sys.path)");
+            sofapython3::py::module m = sofapython3::py::module::import(modulename.c_str());
+            sofapython3::py::module sqq = sofapython3::py::module::import("SofaQtQuick");
+            std::string engineName = "to_"+dstData->getOwner()->getName() + "_" + dstData->getName();
+
+            if (static_cast<sofa::simulation::Node*>(root)->getObject(engineName))
+                ret = true;
+            else if (!m.is_none())
+            {
+                sqq.attr("createTypeConversionEngine")(modulename.c_str(),
+                                                       sofapython3::PythonFactory::toPython(root),
+                                                       sofapython3::PythonFactory::toPython(srcData),
+                                                       sofapython3::PythonFactory::toPython(dstData),
+                                                       srcType.toStdString().c_str(),
+                                                       dstType.toStdString().c_str());
+            }
+            ret = true;
+        });
+        if (ret)
+            return true;
+        QString srcType = srcData->getValueTypeString().c_str();
+        QString dstType = dstData->getValueTypeString().c_str();
+        QString title("Warning: You're trying to link incompatible types. ");
+        title = title + srcType + " != " + dstType ;
+        if (QMessageBox::question(nullptr, title, tr("Do you want to create a PythonDataTrackerEngine?")) == QMessageBox::StandardButton::Yes)
+        {
+            auto sa = SofaBaseApplication::Instance();
+            auto modulename = srcType.replace("<", "_").replace(">", "_") + "2" + dstType.replace("<", "_").replace(">", "_");
+
+            sa->createCallback(sa->callbacksDirectory() + modulename + ".py");
+            sa->openInEditor(sa->callbacksDirectory() + modulename + ".py");
+        }
+    }
+    return false;
+}
+
 bool SofaData::isLinkValid(const QString &path)
 {
     Base* owner = rawData()->getOwner();
@@ -210,6 +277,17 @@ bool SofaData::isSet() const
 bool SofaData::isReadOnly() const
 {
     return rawData()->isReadOnly();
+}
+
+bool SofaData::isPersistent() const
+{
+    return rawData()->isPersistent();
+}
+
+
+void SofaData::setPersistent(bool persistent)
+{
+    m_self->setPersistent(persistent);
 }
 
 bool SofaData::isAutoLink() const

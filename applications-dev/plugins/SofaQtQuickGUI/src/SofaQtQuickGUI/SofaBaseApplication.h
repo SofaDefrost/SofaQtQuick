@@ -28,6 +28,8 @@ along with sofaqtquick. If not, see <http://www.gnu.org/licenses/>.
 #include <QQuaternion>
 #include <QProcess>
 #include <QImage>
+#include <QMap>
+#include <QTimer>
 class QApplication;
 class QQmlApplicationEngine;
 class QOpenGLDebugLogger;
@@ -37,13 +39,21 @@ class QSettings;
 
 #include <SofaQtQuickGUI/Bindings/SofaComponent.h>
 #include <SofaQtQuickGUI/Bindings/SofaBase.h>
+#include <SofaQtQuickGUI/Bindings/SofaData.h>
 #include <SofaPython3/PythonEnvironment.h>
+#include <sofa/core/DataTracker.h>
 
 namespace sofaqtquick
 {
 
+using sofa::core::DataTracker;
+using sofa::core::objectmodel::BaseData;
+using sofaqtquick::bindings::SofaData;
+using sofaqtquick::bindings::QmlDDGNode;
+
 
 class ProcessState;
+class SofaProject;
 
 /// \class Useful tool when creating applications
 class SOFA_SOFAQTQUICKGUI_API SofaBaseApplication : public QObject
@@ -62,24 +72,32 @@ public:
 public:
     Q_PROPERTY(sofaqtquick::bindings::SofaBase* selectedComponent READ getSelectedComponent WRITE setSelectedComponent NOTIFY selectedComponentChanged)
     Q_PROPERTY(int overrideCursorShape READ overrideCursorShape WRITE setOverrideCursorShape NOTIFY overrideCursorShapeChanged)
+    Q_PROPERTY(sofaqtquick::SofaProject* currentProject READ getCurrentProject WRITE setCurrentProject NOTIFY currentProjectChanged)
 
 public:
     int overrideCursorShape() const;
     void setOverrideCursorShape(int newCursorShape);
 
+    sofaqtquick::SofaProject* getCurrentProject();
+    void setCurrentProject(sofaqtquick::SofaProject* newProject);
+
 signals:
     void overrideCursorShapeChanged();
     void signalComponent(QString path) ;
     void selectedComponentChanged(sofaqtquick::bindings::SofaBase* newSelectedComponent);
+    void currentProjectChanged(sofaqtquick::SofaProject* newProject);
 
 public:
+    void setProjectDirectory(const std::string& dir);
+    std::string getProjectDirectory();
     Q_SLOT void copyToClipboard(const QString& text);
     Q_SLOT void openInExplorer(const QString& folder) const;
     Q_SLOT void openInTerminal(const QString& folder) const;
     Q_SLOT void openInEditor(const QString& fullpath, const int line = 0) const;
-    Q_SLOT QString createFolderIn(const QString& parent);
+    Q_SLOT void openInEditorFromUrl(const QUrl& fullpath, const int line = 0) const;
+    Q_INVOKABLE QString createFolderIn(const QString& parent);
 
-	Q_SLOT bool createFolder(const QString& destination);
+    Q_SLOT bool createFolder(const QString& destination);
     Q_SLOT bool removeFolder(const QString& destination);
 	Q_SLOT bool copyFolder(const QString& source, const QString& destination);
 
@@ -88,6 +106,7 @@ public:
     Q_INVOKABLE QString loadFile(const QString& filename);
     Q_SLOT bool saveFile(const QString& destination, const QString& data);
     Q_SLOT bool copyFile(const QString& source, const QString& destination);
+    Q_INVOKABLE bool fileExists(const QString& filepath);
 
     Q_SLOT QImage screenshotComponent(QQuickItem* item, const QSize& forceSize = QSize()) const;
     Q_SLOT QImage screenshotComponent(QQmlComponent* component, const QSize& forceSize = QSize()) const; // \warning created object screenshot will be linked to the global context hence the component bindings (apart from the ones using the component context and the global context) will not be kept, prefer the version of screenshotComponent that need an item you created yourself if you need bindings with a parent context
@@ -113,6 +132,15 @@ public:
 
     Q_INVOKABLE QString binaryDirectory() const;
     Q_INVOKABLE void saveScreenshot(const QString& path);
+
+    Q_INVOKABLE QString templatesDirectory() const;
+    Q_INVOKABLE QString inspectorsDirectory() const;
+    Q_INVOKABLE QString assetsDirectory() const;
+    Q_INVOKABLE QString callbacksDirectory() const;
+
+    Q_INVOKABLE bool createInspector(QString file);
+    Q_INVOKABLE bool createAssetTemplate(QString file);
+    Q_INVOKABLE bool createCallback(QString file);
 
     Q_INVOKABLE QObject* instanciateURL(const QUrl& url);
 
@@ -162,10 +190,19 @@ public:
 private:
     static SofaBaseApplication* OurInstance;
 
-	QString					myPythonDirectory;
+    SofaProject*            m_currentProject;
+
+    QString					myPythonDirectory;
     QString                 myDataDirectory;
 
     sofa::core::objectmodel::Base::SPtr m_selectedComponent;
+
+    QTimer m_viewUpdater;
+    std::map<QmlDDGNode*, int> m_pendingUpdates;
+public:
+    static void updateAllDataView();
+    static void requestDataViewUpdate(QmlDDGNode*);
+    static void removePendingDataViewUpdate(QmlDDGNode*);
 };
 
 }

@@ -10,6 +10,7 @@ import SofaColorScheme 1.0
 import SofaWidgets 1.0
 import QtQml 2.12
 import QtQuick.Window 2.12
+import SofaApplication 1.0
 
 Menu {
     id: projectMenu
@@ -21,11 +22,72 @@ Menu {
 
     visible: false
 
+    Component {
+        id: fileSpecificEntries
+        MenuItem {
+            id: openInEditor
+            text: "Open In Editor"
+            onTriggered: {
+                projectMenu.visible = false
+                model.openThirdParty()
+            }
+        }
+    }
+
+
+    Component {
+        id: folderSpecificEntries
+        MenuItem {
+            id: openAsProject
+            text: "Open Folder As Project"
+
+            onTriggered: {
+                projectMenu.visible = false
+                SofaApplication.currentProject.rootDir = filePath
+                SofaApplication.projectSettings.addRecent(SofaApplication.currentProject.rootDirPath)
+            }
+        }
+    }
+
+    Component {
+        id: sceneSpecificEntries
+        MenuItem {
+            id: projectFromScene
+            text: "Load Scene"
+            onTriggered: {
+                projectMenu.visible = false
+                SofaApplication.sofaScene.source = filePath
+            }
+        }
+    }
+
+    Loader {
+        id: sceneEntriesLoader
+        sourceComponent: (model && model.isScene) ? sceneSpecificEntries : null
+    }
+
+    SofaAssetMenu {
+        id: assetsList
+        enabled: model && model.scriptContent.length > 1
+        asset: model
+        parentNode: SofaApplication.selectedComponent
+        modal: true
+    }
+
+    MenuSeparator {}
+
+    Loader {
+        sourceComponent: fileIsDir ? folderSpecificEntries: fileSpecificEntries
+    }
+
+
+    MenuSeparator {}
+
     MenuItem {
         text: "Show Containing Folder"
         onTriggered: {
             projectMenu.visible = false
-            sofaApplication.openInExplorer(filePath)
+            SofaApplication.openInExplorer(filePath)
         }
     }
     MenuItem {
@@ -33,7 +95,7 @@ Menu {
         text: "Open Terminal Here"
         onTriggered: {
             projectMenu.visible = false
-            sofaApplication.openInTerminal(filePath)
+            SofaApplication.openInTerminal(filePath)
         }
     }
     
@@ -43,7 +105,7 @@ Menu {
         
         onTriggered: {
             projectMenu.visible = false
-            sofaApplication.createFolderIn(filePath)
+            SofaApplication.createFolderIn(filePath.toString())
         }
     }
     Menu {
@@ -54,48 +116,49 @@ Menu {
             text: "QMLUI Canvas"
             icon.source: "qrc:/icon/ICON_CANVAS2.png"
             onTriggered: {
-                var file = sofaApplication.currentProject.createTemplateFile(filePath, "Canvas")
-                sofaApplication.openInEditor(file)
+                var file = SofaApplication.currentProject.createTemplateFile(filePath, "Canvas")
+                SofaApplication.openInEditor(file)
             }
         }
         MenuItem {
             text: "Python Controller"
             icon.source: "qrc:/icon/ICON_CONTROLLER2.png"
             onTriggered: {
-                var file = sofaApplication.currentProject.createTemplateFile(filePath, "Controller")
-                sofaApplication.openInEditor(file)
+                var file = SofaApplication.currentProject.createTemplateFile(filePath, "Controller")
+                SofaApplication.openInEditor(file)
             }
         }
         MenuItem {
             text: "Python ForceField"
             icon.source: "qrc:/icon/ICON_MAGNET.png"
             onTriggered: {
-                var file = sofaApplication.currentProject.createTemplateFile(filePath, "ForceField")
-                sofaApplication.openInEditor(file)
+                var file = SofaApplication.currentProject.createTemplateFile(filePath, "ForceField")
+                SofaApplication.openInEditor(file)
             }
         }
         MenuItem {
             text: "Python DataEngine"
             icon.source: "qrc:/icon/ICON_ENGINE3.png"
             onTriggered: {
-                var file = sofaApplication.currentProject.createTemplateFile(filePath, "DataEngine")
-                sofaApplication.openInEditor(file)
+                var file = SofaApplication.currentProject.createTemplateFile(filePath, "DataEngine")
+                SofaApplication.openInEditor(file)
             }
         }
         MenuItem {
             text: "Python Prefab"
             icon.source: "qrc:/icon/ICON_PREFAB3.png"
             onTriggered: {
-                var file = sofaApplication.currentProject.createTemplateFile(filePath, "Prefab")
-                sofaApplication.openInEditor(file)
+                var file = SofaApplication.currentProject.createTemplateFile(filePath, "Prefab")
+                SofaApplication.openInEditor(file)
             }
         }
         MenuItem {
             text: "Scene"
             icon.source: "qrc:/icon/ICON_PYSCN_MONOCHROME.png"
             onTriggered: {
-                var file = sofaApplication.currentProject.createTemplateFile(filePath, "Scene")
-                sofaApplication.openInEditor(file)
+                var file = SofaApplication.currentProject.createTemplateFile(filePath, "Scene")
+                SofaApplication.openInEditor(file)
+                SofaApplication.currentProject.scan(file)
             }
         }
     }
@@ -126,7 +189,7 @@ Menu {
                 modality: Qt.NonModal
                 flags: Qt.Tool | Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint | Qt.WindowSystemMenuHint |Qt.WindowTitleHint | Qt.WindowCloseButtonHint | Qt.WindowMinMaxButtonsHint
                 visible: true
-                color: sofaApplication.style.contentBackgroundColor
+                color: SofaApplication.style.contentBackgroundColor
                 
                 Loader {
                     id: loader
@@ -136,61 +199,30 @@ Menu {
             }
         }
     }
-    
-    Component {
-        id: fileSpecificEntries
-        MenuItem {
-            id: openInEditor
-            text: "Open In Editor"
-            onTriggered: {
-                projectMenu.visible = false
-                sofaApplication.openInEditor(filePath)
-            }
-        }
-    }
-
-
-    Component {
-        id: folderSpecificEntries
-        MenuItem {
-            id: openAsProject
-            text: "Open Folder As Project"
-
-            onTriggered: {
-                projectMenu.visible = false
-                sofaApplication.projectSettings.addRecent(filePath)
-            }
-        }
-    }
-    
-    Component {
-        id: sceneSpecificEntries
-        MenuItem {
-            id: projectFromScene
-            text: "Load Scene"
-            onTriggered: {
-                projectMenu.visible = false
-                sofaApplication.sofaScene.source = filePath
-            }
-        }
-    }
-
-    Loader {
-        sourceComponent: fileIsDir ? folderSpecificEntries: fileSpecificEntries
-    }
-    Loader {
-        id: sceneEntriesLoader
-        sourceComponent: (model && model.isScene) ? sceneSpecificEntries : null
-    }
 
     MenuSeparator {}
 
-    SofaAssetMenu {
-        id: assetsList
-        asset: model
-        sofaScene: sofaApplication.sofaScene
-        parentNode: sofaApplication.selectedComponent
-        enabled: !fileIsDir
+    Loader {
+        sourceComponent: !fileIsDir && model && model.extension !== "py" ? customizeAssetComponent : null
     }
 
+    Component {
+        id: customizeAssetComponent
+
+            MenuItem {
+            id: customizeAsset
+            text: "Edit asset actions..."
+
+            onTriggered: {
+                var assetTemplateFile = SofaApplication.assetsDirectory() + model.extension + "Asset.py"
+                SofaApplication.createAssetTemplate(assetTemplateFile);
+                SofaApplication.openInEditor(assetTemplateFile);
+            }
+
+            ToolTip {
+                text: "Open Asset template in editor"
+                description: "Asset templates are scripts determining how assets are instantiated in the scene graph."
+            }
+        }
+    }
 }

@@ -15,11 +15,19 @@ SofaDataContainerListModel::SofaDataContainerListModel(QObject* parent)
 
 void SofaDataContainerListModel::insertRow(QVariantList list)
 {
+    if (!m_sofaData || !m_sofaData->rawData()) {
+        return;
+    }
     beginInsertRows(QModelIndex(), nRows(), nRows());
     insertRow(0, QModelIndex());
     endInsertRows();
     for (int i = 0 ; i < nCols() ; ++i)
-        setData(createIndex(nRows() - 1, 0, nullptr), list.at(i), i+1);
+        if (i > list.size())
+            setData(createIndex(nRows() - 1, 0, nullptr), 0, i+1);
+        else {
+            setData(createIndex(nRows() - 1, 0, nullptr), list.at(i), i+1);
+            std::cout << list.at(i).toString().toStdString() << std::endl;
+        }
     if (!m_asGridViewModel) {
         /// ugly hack to keep an accurate number of rows when displaying in a QtQuick.Controls 1.X TableView...
         beginRemoveRows(QModelIndex(), nRows() -1, nRows() -1);
@@ -29,6 +37,9 @@ void SofaDataContainerListModel::insertRow(QVariantList list)
 
 void SofaDataContainerListModel::removeLastRow()
 {
+    if (!m_sofaData || !m_sofaData->rawData()) {
+        return;
+    }
     beginRemoveRows(QModelIndex(), nRows() -1, nRows() -1);
     removeRow(nRows() - 1);
     endRemoveRows();
@@ -36,7 +47,7 @@ void SofaDataContainerListModel::removeLastRow()
 
 void SofaDataContainerListModel::setSofaData(sofaqtquick::bindings::SofaData* newSofaData)
 {
-    if (!newSofaData->rawData()->getValueTypeInfo()->Container())
+    if (!newSofaData || !newSofaData->rawData() || !newSofaData->rawData()->getValueTypeInfo()->Container())
     {
         msg_error("SofaDataContainerListModel") << "Trying to construct a table model from a non-container type.";
         return;
@@ -57,6 +68,7 @@ int	SofaDataContainerListModel::rowCount(const QModelIndex & parent) const
     if (parent.isValid())
         return 0;
 
+    if (!m_sofaData || !m_sofaData->rawData()) return 0;
    if (m_asGridViewModel)
         return nRows() * nCols();
     return nRows();
@@ -67,6 +79,7 @@ int	SofaDataContainerListModel::columnCount(const QModelIndex & parent) const
     if (parent.isValid())
         return 0;
 
+    if (!m_sofaData || !m_sofaData->rawData()) return 0;
     auto typeinfo = m_sofaData->rawData()->getValueTypeInfo();
     int nbCols = int(typeinfo->BaseType()->size());
     if (nbCols == 1)
@@ -78,6 +91,8 @@ int	SofaDataContainerListModel::columnCount(const QModelIndex & parent) const
 
 QString	SofaDataContainerListModel::getCornerType(const QModelIndex& idx) const
 {
+    if (!m_sofaData || !m_sofaData->rawData()) return "Middle";
+
     int r = idx.row() / nCols();
     int c = idx.row() % nCols();
 
@@ -113,7 +128,7 @@ QString	SofaDataContainerListModel::getCornerType(const QModelIndex& idx) const
 
 QVariant SofaDataContainerListModel::data(const QModelIndex& index, int role) const
 {
-    if (!index.isValid())
+    if (!index.isValid() || !m_sofaData || !m_sofaData->rawData())
         return QVariant();
     size_t row = 0;
     size_t col = 0;
@@ -138,7 +153,6 @@ QVariant SofaDataContainerListModel::data(const QModelIndex& index, int role) co
         row = size_t(index.row());
         if (role == 0)
         {
-            std::cout << "idx.row " << index.row() << std::endl;
             return QVariant::fromValue(index.row());
         }
 
@@ -149,24 +163,17 @@ QVariant SofaDataContainerListModel::data(const QModelIndex& index, int role) co
 
     if (typeinfo->Scalar())
     {
-        std::cout << typeinfo->getScalarValue(
-                         m_sofaData->rawData()->getValueVoidPtr(),
-                         row * size_t(nCols()) + col) << std::endl;
         return QVariant::fromValue(typeinfo->getScalarValue(
                                        m_sofaData->rawData()->getValueVoidPtr(),
                                        row * size_t(nCols()) + col));
     }
     else if (typeinfo->Integer())
     {
-        std::cout << typeinfo->getIntegerValue(
-                         m_sofaData->rawData()->getValueVoidPtr(),
-                         row * size_t(nCols()) + col) << std::endl;
         return QVariant::fromValue(typeinfo->getIntegerValue(
                                        m_sofaData->rawData()->getValueVoidPtr(),
                                        row * size_t(nCols()) + col));
     }
     else {
-//        std::cout << "qvariant" << std::endl;
         return  QVariant();
     }
 }
@@ -184,6 +191,7 @@ bool SofaDataContainerListModel::setData(const QModelIndex &index, const QVarian
     size_t row;
     size_t col;
 
+    if (!m_sofaData || !m_sofaData->rawData()) return false;
     if (m_asGridViewModel)
     {
         row = size_t(index.row() / nCols());
@@ -200,7 +208,7 @@ bool SofaDataContainerListModel::setData(const QModelIndex &index, const QVarian
         typeinfo->setScalarValue(m_sofaData->rawData()->beginEditVoidPtr(),
                                  row * size_t(nCols()) + col,
                                  value.toReal());
-        m_sofaData->rawData()->endEditVoidPtr();
+        m_sofaData->rawData()->endEditVoidPtr();        
         m_sofaData->_connect();
     }
     else if (typeinfo->Integer()) {
@@ -213,6 +221,7 @@ bool SofaDataContainerListModel::setData(const QModelIndex &index, const QVarian
     }
     else
         return  false;
+    m_sofaData->setPersistent(true);
     return true;
 }
 
@@ -220,6 +229,7 @@ bool SofaDataContainerListModel::insertRow(int row, const QModelIndex &parent)
 {
     SOFA_UNUSED(row);
     SOFA_UNUSED(parent);
+    if (!m_sofaData || !m_sofaData->rawData()) return false;
     const auto& d = m_sofaData->rawData();
     const AbstractTypeInfo* typeinfo = d->getValueTypeInfo();
 
@@ -227,6 +237,7 @@ bool SofaDataContainerListModel::insertRow(int row, const QModelIndex &parent)
         return false;
     typeinfo->setSize(d->beginEditVoidPtr(), typeinfo->size(d->getValueVoidPtr()) + typeinfo->BaseType()->size());
     d->endEditVoidPtr();
+    m_sofaData->rawData()->setPersistent(true);
 
     return true;
 }
@@ -235,6 +246,7 @@ bool SofaDataContainerListModel::insertRows(int row, int count, const QModelInde
 {
     SOFA_UNUSED(row);
     SOFA_UNUSED(parent);
+    if (!m_sofaData || !m_sofaData->rawData()) return false;
     const auto& d = m_sofaData->rawData();
     const AbstractTypeInfo* typeinfo = d->getValueTypeInfo();
 
@@ -242,6 +254,7 @@ bool SofaDataContainerListModel::insertRows(int row, int count, const QModelInde
         return false;
     typeinfo->setSize(d->beginEditVoidPtr(), typeinfo->size(d->getValueVoidPtr()) + size_t(count) * typeinfo->BaseType()->size());
     d->endEditVoidPtr();
+    m_sofaData->rawData()->setPersistent(true);
     return true;
 }
 
@@ -249,6 +262,7 @@ bool SofaDataContainerListModel::removeRow(int row, const QModelIndex &parent)
 {
     SOFA_UNUSED(row);
     SOFA_UNUSED(parent);
+    if (!m_sofaData || !m_sofaData->rawData()) return false;
     const auto& d = m_sofaData->rawData();
     const AbstractTypeInfo* typeinfo = d->getValueTypeInfo();
 
@@ -256,6 +270,7 @@ bool SofaDataContainerListModel::removeRow(int row, const QModelIndex &parent)
         return false;
     typeinfo->setSize(d->beginEditVoidPtr(), typeinfo->size(d->getValueVoidPtr()) - typeinfo->BaseType()->size());
     d->endEditVoidPtr();
+    m_sofaData->rawData()->setPersistent(true);
     return true;
 }
 
@@ -263,6 +278,7 @@ bool SofaDataContainerListModel::removeRows(int row, int count, const QModelInde
 {
     SOFA_UNUSED(row);
     SOFA_UNUSED(parent);
+    if (!m_sofaData || !m_sofaData->rawData()) return false;
     const auto& d = m_sofaData->rawData();
     const AbstractTypeInfo* typeinfo = d->getValueTypeInfo();
 
@@ -270,6 +286,7 @@ bool SofaDataContainerListModel::removeRows(int row, int count, const QModelInde
         return false;
     typeinfo->setSize(d->beginEditVoidPtr(), typeinfo->size(d->getValueVoidPtr()) - size_t(count) * typeinfo->BaseType()->size());
     d->endEditVoidPtr();
+    m_sofaData->rawData()->setPersistent(true);
     return true;
 }
 
@@ -277,6 +294,7 @@ bool SofaDataContainerListModel::removeRows(int row, int count, const QModelInde
 
 QHash<int, QByteArray> SofaDataContainerListModel::roleNames() const {
     QHash<int, QByteArray> roles;
+    if (!m_sofaData || !m_sofaData->rawData()) return roles;
     if (m_asGridViewModel)
     {
         roles[CornerRole] = "corner";

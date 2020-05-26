@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QSettings>
 #include <QDir>
 #include <QMap>
 #include <QUrl>
@@ -10,6 +11,7 @@
 #include "SofaQtQuickGUI/Assets/DirectoryAsset.h"
 #include "SofaQtQuickGUI/config.h"
 #include "SofaQtQuickGUI/Bindings/SofaBase.h"
+#include "SofaQtQuickGUI/SofaBaseScene.h"
 using sofaqtquick::bindings::SofaBase;
 
 #include "LiveFileMonitor.h"
@@ -53,7 +55,9 @@ class SOFA_SOFAQTQUICKGUI_API SofaProject : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QUrl rootDir READ getRootDir WRITE setRootDir NOTIFY rootDirChanged)
+    Q_PROPERTY(QString rootDirPath READ getRootDirPath NOTIFY rootDirPathChanged)
     Q_PROPERTY(bool isDebugPrintEnabled READ getDebug WRITE setDebug NOTIFY debugChanged)
+    Q_PROPERTY(SofaBaseScene* scene READ getScene WRITE setScene NOTIFY sceneChanged)
 
 public:
     SofaProject();
@@ -62,8 +66,23 @@ public:
     const QUrl& getRootDir();
     void setRootDir(const QUrl& rootDir);
 
+    QString getRootDirPath() {
+        return getRootDir().path();
+    }
+
     Q_INVOKABLE bool getDebug() const;
     Q_INVOKABLE void setDebug(bool state);
+
+
+    Q_INVOKABLE SofaBaseScene* getScene() { return m_currentScene; }
+    Q_INVOKABLE void setScene(SofaBaseScene* scene) { m_currentScene = scene; }
+
+    Q_INVOKABLE void newProject();
+    Q_INVOKABLE void openProject();
+    Q_INVOKABLE void importProject();
+    Q_INVOKABLE void exportProject();
+    Q_INVOKABLE void saveSceneAsNewProject();
+
 
 
     Q_INVOKABLE void scan(const QFileInfo& folder);
@@ -78,20 +97,24 @@ public:
     Q_INVOKABLE QString createTemplateFile(const QString& directory, const QString& templateType);
     Q_INVOKABLE bool createPrefab(SofaBase* node);
     Q_INVOKABLE bool createPythonPrefab(QString name, SofaBase* node);
+    Q_INVOKABLE QUrl chooseProjectDir(QString windowTitle = tr("Choose Project Location"), QString baseDir = "~/Documents", int opts = 0);
+    Q_INVOKABLE QUrl getOpenFile(QString windowTitle = tr("Choose a file"), QString baseDir = "~/Documents",
+                                 int opts = 0, QString nameFilters = "");
+    Q_INVOKABLE QUrl getSaveFile(QString windowTitle = tr("Choose a file"), QString baseDir = "~/Documents",
+                                 int opts = 0, QString nameFilters = "");
     Q_INVOKABLE QString createProject(const QUrl& dir);
     Q_INVOKABLE bool createProjectTree(const QUrl& dir);
     Q_INVOKABLE QString importProject(const QUrl& archive);
-    Q_INVOKABLE bool exportProject(const QUrl& projectName);
-
-    Q_INVOKABLE void saveScene(const QString filepath, SofaNode* node);
 
 private slots:
     void onDirectoryChanged(const QString &path);
     void onFileChanged(const QString &path);
 
 signals:
+    void sceneChanged(SofaBaseScene*);
     void filesChanged();
     void rootDirChanged(QUrl& rootDir);
+    void rootDirPathChanged(QString rootDir);
     void debugChanged(bool value);
 
 private:
@@ -104,9 +127,11 @@ private:
 
     QMap<QString, std::shared_ptr<Asset> > m_assets; /// project asset's URLs with their associated loaders
     QMap<QString, std::shared_ptr<DirectoryAsset> > m_directories;
+    QSettings* m_projectSettings {nullptr};
 
     ProjectMonitor* m_watcher {nullptr};
     bool m_debug {false};
+    SofaBaseScene* m_currentScene;
 };
 
 }  // namespace sofaqtquick

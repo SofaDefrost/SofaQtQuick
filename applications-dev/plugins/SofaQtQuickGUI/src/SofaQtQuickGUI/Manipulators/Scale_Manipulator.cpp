@@ -92,7 +92,7 @@ void Scale_Manipulator::drawFace(const std::vector<Vec3d>& q, s_color color, sof
 }
 
 
-sofa::core::objectmodel::BaseData* Scale_Manipulator::getData()
+sofa::core::objectmodel::BaseData* Scale_Manipulator::GetData()
 {
     bindings::SofaBase* obj = SofaBaseApplication::Instance()->getSelectedComponent();
     if (!obj || !obj->rawBase()) return nullptr;

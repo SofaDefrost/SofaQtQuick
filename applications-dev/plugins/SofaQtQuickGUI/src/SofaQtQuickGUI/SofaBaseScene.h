@@ -26,7 +26,6 @@ along with sofaqtquick. If not, see <http://www.gnu.org/licenses/>.
 #include <SofaQtQuickGUI/SofaComponentList.h>
 #include <SofaQtQuickGUI/Bindings/SofaData.h>
 #include <SofaQtQuickGUI/Bindings/SofaLink.h>
-#include <SofaQtQuickGUI/Manipulators/Manipulator.h>
 #include <SofaQtQuickGUI/SelectableSofaParticle.h>
 
 #include <sofa/simulation/Simulation.h>
@@ -111,8 +110,7 @@ public:
     Q_PROPERTY(bool defaultAnimate READ defaultAnimate WRITE setDefaultAnimate NOTIFY defaultAnimateChanged)
     Q_PROPERTY(bool asynchronous READ asynchronous WRITE setAsynchronous NOTIFY asynchronousChanged)
     Q_PROPERTY(bool pyQtSynchronous READ pyQtSynchronous WRITE setPyQtForceSynchronous NOTIFY pyQtForceSynchronousChanged)
-    Q_PROPERTY(sofaqtquick::Manipulator* selectedManipulator READ selectedManipulator WRITE setSelectedManipulator NOTIFY selectedManipulatorChanged)
-    Q_PROPERTY(QQmlListProperty<sofaqtquick::Manipulator> manipulators READ manipulators)
+    Q_PROPERTY(SofaNode* rootNode READ getRootNode NOTIFY rootNodeChanged)
 
     Q_ENUMS(Status)
     enum Status {
@@ -122,6 +120,20 @@ public:
         Unloading,
         Error
     };
+
+
+
+
+public:
+    /// Scene-related File Menu methods:
+    Q_INVOKABLE void newScene();
+    Q_INVOKABLE void openScene(QUrl projectDir);
+    Q_INVOKABLE void reloadScene();
+    Q_INVOKABLE void saveScene(QString sceneFile = "");
+    Q_INVOKABLE void saveSceneAs(QUrl projectDir);
+    Q_INVOKABLE void exportSceneAs(QUrl projectDir);
+
+
 
 public:
     sofaqtquick::SofaBaseScene::Status status()	const               {return myStatus;}
@@ -173,10 +185,6 @@ public:
     bool pyQtSynchronous() const                                {return myPyQtForceSynchronous;}
     void setPyQtForceSynchronous(bool newPyQtSynchronous);
 
-    sofaqtquick::Manipulator* selectedManipulator() const     {return mySelectedManipulator;}
-    void setSelectedManipulator(sofaqtquick::Manipulator* newSelectedManipulator);
-
-    QQmlListProperty<sofaqtquick::Manipulator> manipulators();
 
 signals:
     void notifyCanvasChanged();
@@ -196,7 +204,6 @@ signals:
     void defaultAnimateChanged(bool newDefaultAnimate);
     void asynchronousChanged(bool newAsynchronous);
     void pyQtForceSynchronousChanged(bool newPyQtSynchronous);
-    void selectedManipulatorChanged(sofaqtquick::Manipulator* newSelectedManipulator);
 
 public:
     /// Returns an object, a node or a data according to its scene path.
@@ -249,6 +256,7 @@ public:
     Q_INVOKABLE sofaqtquick::bindings::SofaBaseObject* componentByType(const QString& typeName);
     Q_INVOKABLE SofaBaseObjectList* componentsByType(const QString& typeName);
     Q_INVOKABLE sofaqtquick::bindings::SofaNode* root();
+    sofaqtquick::bindings::SofaNode* getRootNode() { return root(); }
 
     // TODO: avoid this kind of specialization if possible
     Q_INVOKABLE sofaqtquick::SofaBase* visualStyleComponent();
@@ -295,7 +303,7 @@ public:
     const sofa::simulation::Node::SPtr& sofaRootNode() const { return mySofaRootNode; }
     sofa::simulation::Node::SPtr& sofaRootNode() { return mySofaRootNode; }
     void setSofaRootNode(sofa::simulation::Node::SPtr node) {
-        mySofaRootNode = node.get();
+        mySofaRootNode = node;
         markVisualDirty();
         myTextureAreDirty = true;
     }
@@ -329,8 +337,6 @@ private:
     sofa::simulation::Node::SPtr                mySofaRootNode;
     QTimer*                                     myStepTimer;
 
-    QList<Manipulator*>                         myManipulators;
-    Manipulator*                                mySelectedManipulator;
     SofaBase*                                   mySelectedComponent {nullptr};
 
     SofaBase*                                   myCppGraph;

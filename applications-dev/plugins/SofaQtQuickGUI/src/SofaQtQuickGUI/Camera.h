@@ -36,7 +36,7 @@ class SOFA_SOFAQTQUICKGUI_API Camera : public QObject
 
 public:
     explicit Camera(QObject* parent = nullptr);
-	~Camera();
+    ~Camera();
 
     Q_PROPERTY(double zNear READ zNear WRITE setZNear NOTIFY zNearChanged)
     Q_PROPERTY(double zFar READ zFar WRITE setZFar NOTIFY zFarChanged)
@@ -76,6 +76,7 @@ public:
 
     Q_SLOT void lookAt(const QVector3D& eye, const QVector3D& target, const QVector3D& up);
     Q_SLOT void fit(QVector3D min, QVector3D max, float radiusFactor=1.5);
+    Q_SLOT void adjustZRange(QVector3D min, QVector3D max, float radiusFactor=1.5);
 
     Q_INVOKABLE float distanceFromTarget() const;
     Q_SLOT void setDistanceFromTarget(double distance); /// \note distance must be > 0.0
@@ -98,7 +99,7 @@ public:
 
     void setPerspectiveFovY(double fovY);
     void setAspectRatio(double aspectRatio);
-    virtual void setPixelResolution(double width, double height) {}
+    virtual void setPixelResolution(double /*width*/, double /*height*/) {}
     double zNear() const;
     void setZNear(double newZNear);
 
@@ -128,16 +129,16 @@ protected:
     double              myOrthoTop;
     double				myPerspectiveFovY;
     double				myAspectRatio;
-	double				myZNear;
-	double				myZFar;
+    double				myZNear;
+    double				myZFar;
 
-	mutable QMatrix4x4	myProjection;
+    mutable QMatrix4x4	myProjection;
     mutable QMatrix4x4	myView;
     mutable QMatrix4x4  myModel;
 
     QVector3D           myTarget;
 
-	mutable bool		myProjectionDirty;
+    mutable bool		myProjectionDirty;
     mutable bool		myViewDirty;
 
 private:
@@ -211,8 +212,8 @@ inline void Camera::setOrthographic(bool newOrthographic)
 
         if(0.0 == myZNear && 0.0 == myZFar)
         {
-            setZNear(0.1);
-            setZFar(1000.0);
+            setZNear(0.0001);
+            setZFar(1000000.0);
         }
         else if(0.0 == myZNear)
             setZNear(myZFar * 0.0001);

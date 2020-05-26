@@ -12,7 +12,6 @@
         <file>config/classic.ini</file>
         <file>config/fullview.ini</file>
         <file>config/quadview.ini</file>
-        <file>python/BaseHeader.py</file>
         <file>python/PythonConsole.py</file>
         <file>icon/downArrow.png</file>
         <file>icon/rightArrow.png</file>
@@ -101,5 +100,12 @@
         <file>icon/ICON_TO_CODELINE.png</file>
         <file>icon/ICON_WARNING.png</file>
         <file>icon/ManipulatorMenuCorner.png</file>
+        <file>icon/ICON_ROTATION_WORLD_MODIFIER.png</file>
+        <file>icon/validLink.png</file>
+        <file>icon/invalidLink.png</file>
+        <file>icon/breakLink.png</file>
+        <file>icon/edit.png</file>
+        <file>icon/clear.png</file>
+        <file>icon/ICON_SNAP_MODE.png</file>
     </qresource>
 </RCC>

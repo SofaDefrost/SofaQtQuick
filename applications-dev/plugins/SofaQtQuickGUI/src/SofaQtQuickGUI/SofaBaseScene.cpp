@@ -19,7 +19,6 @@ along with sofaqtquick. If not, see <http://www.gnu.org/licenses/>.
 
 #include <SofaQtQuickGUI/SofaBaseScene.h>
 #include <SofaQtQuickGUI/SofaViewer.h>
-#include <SofaQtQuickGUI/SelectableManipulator.h>
 
 #include <sofa/helper/OptionsGroup.h>
 using sofa::helper::OptionsGroup ;
@@ -103,6 +102,7 @@ using sofaqtquick::bindings::SofaCoreBindingFactory;
 #include <SofaQtQuickGUI/SofaBaseApplication.h>
 using sofaqtquick::SofaBaseApplication;
 
+
 #include <array>
 #include <sstream>
 #include <qqml.h>
@@ -118,6 +118,8 @@ using sofaqtquick::SofaBaseApplication;
 #include <QRunnable>
 #include <QGuiApplication>
 #include <QOffscreenSurface>
+#include <QFileDialog>
+#include <QMessageBox>
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -133,6 +135,7 @@ using namespace sofa::component::visualmodel;
 using namespace sofa::simulation;
 
 typedef sofa::component::container::MechanicalObject<sofa::defaulttype::Vec3Types> MechanicalObject3;
+typedef sofa::component::container::MechanicalObject<sofa::defaulttype::Rigid3Types> MechanicalObject7;
 
 SofaBaseScene::SofaBaseScene(QObject *parent) : QObject(parent),
     myStatus(Status::Null),
@@ -148,8 +151,6 @@ SofaBaseScene::SofaBaseScene(QObject *parent) : QObject(parent),
     myPyQtForceSynchronous(true),
     mySofaSimulation(nullptr),
     myStepTimer(new QTimer(this)),
-    myManipulators(),
-    mySelectedManipulator(nullptr),
     mySelectedComponent(nullptr)
 {
     std::cout << "SCENE CREATED ..... " << std::endl;
@@ -203,16 +204,133 @@ SofaBaseScene::~SofaBaseScene()
     sofa::simulation::graph::cleanup();
 }
 
+
+
+
+
+
+
+/// Scene-related File Menu methods:
+void SofaBaseScene::newScene()
+{
+    unloadAllCanvas();
+    setPathQML("");
+    setSource(QUrl());
+    setSourceQML(QUrl());
+
+    // return now if a scene is already loading
+    if(Status::Loading == myStatus)
+        return;
+
+    // reset properties
+    setAnimate(false);
+    SofaBaseApplication::SetSelectedComponent(nullptr);
+
+    if(mySofaRootNode)
+    {
+        setStatus(Status::Unloading);
+        aboutToUnload();
+        mySofaSimulation->unload(mySofaRootNode);
+    }
+
+    sofa::simulation::graph::init();
+    mySofaSimulation = sofa::simulation::graph::getSimulation();
+    mySofaRootNode = mySofaSimulation->createNewNode("root");
+    myCppGraph = new SofaBase(mySofaRootNode);
+    setDt(mySofaRootNode->getDt());
+    setStatus(Status::Ready);
+    emit rootNodeChanged();
+}
+
+void SofaBaseScene::openScene(QUrl projectDir)
+{
+    QFileDialog::Options options;
+    options = QFileDialog::DontUseNativeDialog | QFileDialog::ReadOnly;
+    QString title = "Choose scene file to open";
+    QString filters = "SofaScene files (*.xml *.scn *.py *.pyscn)";
+    QUrl sceneUrl = QFileDialog::getOpenFileUrl(nullptr, title, projectDir.toLocalFile(), filters, nullptr, options);
+    if (!sceneUrl.isEmpty() && sceneUrl.isValid())
+        this->setSource(sceneUrl);
+}
+
+void SofaBaseScene::reloadScene()
+{
+    reload();
+}
+
+void SofaBaseScene::saveScene(QString sceneFile)
+{
+    QString file = source().path();
+    msg_warning("runSofa2") << "path: "  << source().path().toStdString();
+    if (sceneFile != "") {
+        msg_warning("runSofa2") << "sceneFile: "  << sceneFile.toStdString();
+        file = sceneFile;
+    }
+    SofaNode* root = new sofaqtquick::SofaNode(DAGNode::SPtr(static_cast<DAGNode*>(mySofaRootNode->toBaseNode())));
+    if (root->getData("time")->getValue() > 0)
+    {
+        QString title("Warning: This scene has already been execued");
+        if (QMessageBox::question(nullptr, title, tr("Are your sure that you want to save an executed scene?")) == QMessageBox::StandardButton::No)
+            return;
+    }
+    QFile::copy(file, file + ".backup");
+    sofapython3::PythonEnvironment::executePython([file, root]()
+    {
+        std::string ppath = file.toStdString();
+        py::module SofaQtQuick = py::module::import("SofaQtQuick");
+        SofaQtQuick.reload();
+
+        py::object rootNode = PythonFactory::toPython(root->self());
+
+        py::str file(ppath);
+        msg_warning("runSofa2") << "Saving to..: "  << ppath;
+        bool ret =  py::cast<bool>(SofaQtQuick.attr("saveAsPythonScene")(file, rootNode));
+        if (ret) {
+            msg_warning("runSofa2") << "File saved to "  << ppath;
+        } else {
+            msg_error("runSofa2") << "Could not save to file "  << ppath;
+        }
+    });
+    return;
+}
+
+void SofaBaseScene::saveSceneAs(QUrl projectDir)
+{
+    QFileDialog::Options options;
+    options = QFileDialog::DontUseNativeDialog | QFileDialog::ReadOnly;
+    QString title = "Save scene as";
+    QString filters = "SofaScene files (*.xml *.scn *.py *.pyscn";
+    QUrl sceneUrl = QFileDialog::getSaveFileUrl(nullptr, title, projectDir.toLocalFile(), filters, nullptr, options);
+    saveScene(sceneUrl.path());
+}
+
+void SofaBaseScene::exportSceneAs(QUrl /*projectDir*/)
+{
+    msg_error("SofaBaseScene") <<  "Not implemented yet...";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool LoaderProcess(SofaBaseScene* sofaScene)
 {
     if(!sofaScene || !sofaScene->sofaSimulation() || sofaScene->path().isEmpty())
         return false;
 
-    std::cout << sofaScene->path().toLatin1().toStdString() << std::endl;
-
     Node::SPtr n = sofaScene->sofaSimulation()->load(sofaScene->path().toLatin1().toStdString());
     sofaScene->setSofaRootNode(n);
-    if( sofaScene->sofaRootNode().get() )
+    if ( sofaScene->sofaRootNode().get() )
     {
         sofaScene->sofaSimulation()->init(sofaScene->sofaRootNode().get());
 
@@ -235,6 +353,7 @@ bool LoaderProcess(SofaBaseScene* sofaScene)
     else
     {
         sofaScene->setStatus(SofaBaseScene::Status::Error);
+        sofaScene->setSofaRootNode(sofa::simulation::Node::create("root"));
         return false;
     }
 }
@@ -294,8 +413,7 @@ void SofaBaseScene::loadCppGraph()
     // reset properties
     setAnimate(false);
     SofaBaseApplication::SetSelectedComponent(nullptr);
-    setSelectedManipulator(nullptr);
-    myManipulators.clear();
+//    setSelectedManipulator(nullptr);
 
     if(mySofaRootNode)
     {
@@ -328,8 +446,7 @@ void SofaBaseScene::open()
     setAnimate(false);
 
     SofaBaseApplication::SetSelectedComponent(nullptr);
-    setSelectedManipulator(nullptr);
-    myManipulators.clear();
+//    setSelectedManipulator(nullptr);
 
     if(mySofaRootNode)
     {
@@ -346,8 +463,6 @@ void SofaBaseScene::open()
     }
 
     QString finalFilename = mySource.path();
-    if(mySource.isLocalFile())
-        finalFilename = mySource.toLocalFile();
 
     if(finalFilename.isEmpty())
     {
@@ -468,8 +583,8 @@ void SofaBaseScene::setHeader(const QString& newHeader)
 
 void SofaBaseScene::setSource(const QUrl& newSource)
 {
-    mySource = newSource;
-    sourceChanged(newSource);
+    mySource = QUrl(newSource);
+    sourceChanged(mySource);
 }
 
 void SofaBaseScene::setCppSceneGraph(SofaBase* newCppGraph)
@@ -563,41 +678,6 @@ void SofaBaseScene::setPyQtForceSynchronous(bool newPyQtForceSynchronous)
     pyQtForceSynchronousChanged(newPyQtForceSynchronous);
 }
 
-
-void SofaBaseScene::setSelectedManipulator(sofaqtquick::Manipulator* newSelectedManipulator)
-{
-    if(newSelectedManipulator == mySelectedManipulator)
-        return;
-
-    mySelectedManipulator = newSelectedManipulator;
-
-    selectedManipulatorChanged(newSelectedManipulator);
-}
-
-static void appendManipulator(QQmlListProperty<sofaqtquick::Manipulator> *property, sofaqtquick::Manipulator *value)
-{
-    static_cast<QList<sofaqtquick::Manipulator*>*>(property->data)->append(value);
-}
-
-static sofaqtquick::Manipulator* atManipulator(QQmlListProperty<sofaqtquick::Manipulator> *property, int index)
-{
-    return static_cast<QList<sofaqtquick::Manipulator*>*>(property->data)->at(index);
-}
-
-static void clearManipulator(QQmlListProperty<sofaqtquick::Manipulator> *property)
-{
-    static_cast<QList<sofaqtquick::Manipulator*>*>(property->data)->clear();
-}
-
-static int countManipulator(QQmlListProperty<sofaqtquick::Manipulator> *property)
-{
-    return static_cast<QList<sofaqtquick::Manipulator*>*>(property->data)->size();
-}
-
-QQmlListProperty<sofaqtquick::Manipulator> SofaBaseScene::manipulators()
-{
-    return QQmlListProperty<sofaqtquick::Manipulator>(this, &myManipulators, appendManipulator, countManipulator, atManipulator, clearManipulator);
-}
 
 double SofaBaseScene::radius() const
 {
@@ -1287,7 +1367,6 @@ public:
     virtual Result processNodeTopDown(Node* node)
     {
         Node::ObjectIterator objectIt;
-        std::cout << "running visitor on " << node->getName() << std::endl;
         for (objectIt = node->object.begin(); objectIt != node->object.end(); ++objectIt){
             BaseObject::SPtr obj = *objectIt;
             if (isInstanceOf(obj->getClass(), myTypeName.toStdString()))
@@ -1431,6 +1510,7 @@ void SofaBaseScene::onSetDataValueByComponent(SofaBase* SofaBase, const QString&
 void SofaBaseScene::reload()
 {
     open();
+    emit rootNodeChanged();
 }
 
 void SofaBaseScene::step()
@@ -1473,7 +1553,7 @@ void SofaBaseScene::reset()
 void SofaBaseScene::addCanvas(const QUrl& canvas)
 {
     Canvas::SPtr newCanvas = sofa::core::objectmodel::New<Canvas>();
-    newCanvas->d_qmlFile.setValue(canvas.toLocalFile().toStdString());
+    newCanvas->d_qmlFile.setValue(canvas.path().toStdString());
     sofaqtquick::bindings::SofaBaseObject* bo = new sofaqtquick::bindings::SofaBaseObject(newCanvas);
     m_canvas.push_back(bo);
     mySofaRootNode->addObject(newCanvas);
@@ -1538,14 +1618,19 @@ private:
 
 void SofaBaseScene::checkForCanvases()
 {
-    GetCanvasVisitor visitor;
-    mySofaRootNode->executeVisitor(&visitor);
-    QList<QObject*> newCanvases = visitor.getCanvases();
-    if (newCanvases.size() != m_canvas.size() || visitor.needsRefresh)
-    {
-        m_canvas = newCanvases;
-        emit notifyCanvasChanged();
+    if (!mySofaRootNode.get()) {
+        m_canvas.clear();
+    } else {
+        GetCanvasVisitor visitor;
+        mySofaRootNode->executeVisitor(&visitor);
+        QList<QObject*> newCanvases = visitor.getCanvases();
+        if (newCanvases.size() != m_canvas.size() || visitor.needsRefresh)
+        {
+            m_canvas = newCanvases;
+        }
+        else return;
     }
+    emit notifyCanvasChanged();
 }
 
 SelectableSofaParticle* SofaBaseScene::pickParticle(const QVector3D& origin, const QVector3D& direction, double distanceToRay, double distanceToRayGrowth, const QStringList& tags, const QList<SofaBase*>& roots)
@@ -1592,10 +1677,15 @@ SelectableSofaParticle* SofaBaseScene::pickParticle(const QVector3D& origin, con
             pickVisitor.getClosestParticle( mstate, indexCollisionElement, point, rayLength );
 
             MechanicalObject3* mechanicalObject = dynamic_cast<MechanicalObject3*>(mstate);
-
             if(mechanicalObject)
             {
                 selectableSofaParticle = new SelectableSofaParticle(new sofaqtquick::bindings::SofaBaseObject(mechanicalObject), indexCollisionElement);
+                break;
+            }
+            MechanicalObject7* rigidObject = dynamic_cast<MechanicalObject7*>(mstate);
+            if(rigidObject)
+            {
+                selectableSofaParticle = new SelectableSofaParticle(new sofaqtquick::bindings::SofaBaseObject(rigidObject), indexCollisionElement);
                 break;
             }
         }

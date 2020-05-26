@@ -43,139 +43,118 @@ Item {
         color: SofaApplication.style.contentBackgroundColor
         anchors.fill: parent
         visible: selectedAsset === null
-        DropArea {
-            id: dropArea
-            anchors.fill: parent
-            onDropped: {
-                /// Drop of a SofaBase form the hierachy. This indicate that we want
-                /// to automatically connect all the data fields with similar names.
-                if (drag.source.origin === "Hierarchy") {
-                    var droppedItem = drag.source.item 
-                    /// Ecmascript6.0 'for..of' is valid, don't trust qtcreator there is an error
-                    for(var fname of droppedItem.getDataFields())
-                    {
-                        var data = SofaApplication.selectedComponent.findData(fname);
-                        if( data !== null && data.isAutoLink())
-                        {
-                            data.setParent(droppedItem.getData(fname))
-                        }
-                    }
-                }
-            }
-        }
 
         ColumnLayout {
             anchors.fill: parent
             spacing: 10
-            RowLayout {
-                z: 3
-                id: header
-                Layout.fillWidth: true
+            Rectangle {
                 Layout.preferredHeight: 20
+                Layout.fillWidth: true
+                color: "transparent"
+                MouseArea {
+                    anchors.fill: parent
+                    onPressed: {
+                        print("Mouse area pressed in a rectangle.")
+                        root.forceActiveFocus()
+                    }
+                }
 
-                Text {
-                    id: detailsArea
-                    Layout.fillWidth: true
-                    text : "Details " + ((SofaApplication.selectedComponent===null)? "" : "("+ SofaApplication.selectedComponent.getClassName() + ")")
-                    color: "black"
+
+                DropArea {
+                    id: dropArea
+                    anchors.fill: parent
+                    onDropped: {
+                        /// Drop of a SofaBase form the hierachy. This indicate that we want
+                        /// to automatically connect all the data fields with similar names.
+                        if (drag.source.origin === "Hierarchy") {
+                            var droppedItem = drag.source.item
+                            /// Ecmascript6.0 'for..of' is valid, don't trust qtcreator there is an error
+                            if (droppedItem.getPathName() === SofaApplication.selectedComponent.getPathName()) {
+                                console.error("Cannot link datafields to themselves")
+                                return;
+                            }
+                            for (var fname of droppedItem.getDataFields())
+                            {
+                                var data = SofaApplication.selectedComponent.findData(fname);
+                                if (data !== null && data.isAutoLink())
+                                {
+                                    data.setValue(droppedItem.getData(fname).getValue())
+                                    data.setParent(droppedItem.getData(fname))
+                                }
+                            }
+                        }
+                    }
                 }
-                Label {
-                    id: showAllLabel
-//                    anchors.right: isDebug.left
-//                    anchors.verticalCenter: header1.verticalCenter
-                    text: "Show all: "
-                    color: "black"
-                }
-                CheckBox {
-                    id : showAll
-//                    anchors.right: header1.right
-//                    anchors.verticalCenter: header1.verticalCenter
+                RowLayout {
+                    z: 3
+                    id: header
+                    anchors.fill: parent
+                    anchors.rightMargin: 10
+
+                    Text {
+                        id: detailsArea
+                        Layout.fillWidth: true
+                        text : "Details " + ((SofaApplication.selectedComponent===null)? "" : "("+ SofaApplication.selectedComponent.getClassName() + ")")
+                        color: "black"
+                    }
+                    Label {
+                        id: showAllLabel
+                        text: "Show all: "
+                        color: "black"
+                    }
+                    CheckBox {
+                        id : showAll
+                    }
+                    Button {
+                        id : customizeButton
+                        hoverEnabled: true
+                        ColorImage {
+                            width: 13
+                            height: 13
+                            anchors.centerIn: parent
+                            source: "qrc:/icon/edit.png"
+                            fillMode: Image.PreserveAspectFit
+                            color: customizeButton.hovered ? "darkgrey" : "#393939"
+                        }
+                        implicitWidth: 20
+                        implicitHeight: 20
+                        onClicked: {
+                            var file = SofaApplication.inspectorsDirectory() + SofaApplication.selectedComponent.getClassName() + ".qml";
+                            SofaApplication.createInspector(file)
+                            SofaApplication.openInEditor(file)
+                        }
+                    }
                 }
             }
 
-            ScrollView {
+
+            Flickable {
                 id: scrollview
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 Layout.leftMargin: 5
                 clip: true
+                flickableDirection: Flickable.VerticalFlick
+                boundsMovement: Flickable.StopAtBounds
                 ScrollBar.horizontal: ScrollBar {
                     policy: ScrollBar.AlwaysOff
                 }
 
-                ScrollBar.vertical: ScrollBar {
+                ScrollBar.vertical: VerticalScrollbar {
                     id: scrollbar
-                    policy: scrollview.height > scrollview.contentHeight ? ScrollBar.AlwaysOff : ScrollBar.AlwaysOn
-                    parent: scrollview
-                    height: parent.height
-                    width: 12
-                    size: 0.1
-                    active: true
-                    contentItem: GBRect {
-                        implicitWidth: 12
-                        implicitHeight: 100
-                        radius: 6
-                        border.color: "#3f3f3f"
-                        LinearGradient {
-                            cached: true
-                            source: parent
-                            anchors.left: parent.left
-                            anchors.leftMargin: 1
-                            anchors.right: parent.right
-                            anchors.rightMargin: 1
-                            anchors.top: parent.top
-                            anchors.topMargin: 0
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 0
-
-                            start: Qt.point(0, 0)
-                            end: Qt.point(12, 0)
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: "#979797" }
-                                GradientStop { position: 1.0; color: "#7b7b7b" }
-                            }
-                        }
-                        isHorizontal: true
-                        borderGradient: Gradient {
-                            GradientStop { position: 0.0; color: "#444444" }
-                            GradientStop { position: 1.0; color: "#515151" }
-                        }
-                    }
-
-                    background: GBRect {
-                        border.color: "#3f3f3f"
-                        radius: 6
-                        implicitWidth: 12
-                        implicitHeight: scrollview.height
-                        LinearGradient {
-                            cached: true
-                            source: parent
-                            anchors.left: parent.left
-                            anchors.leftMargin: 1
-                            anchors.right: parent.right
-                            anchors.rightMargin: 1
-                            anchors.top: parent.top
-                            anchors.topMargin: 0
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 0
-                            start: Qt.point(0, 0)
-                            end: Qt.point(12, 0)
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: "#565656" }
-                                GradientStop { position: 1.0; color: "#5d5d5d" }
-                            }
-                        }
-                        isHorizontal: true
-                        borderGradient: Gradient {
-                            GradientStop { position: 0.0; color: "#444444" }
-                            GradientStop { position: 1.0; color: "#515151" }
-                        }
-                    }
+                    implicitWidth: 12
+                    content: content
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    onPressed: forceActiveFocus()
                 }
 
 
+                contentWidth: content.width; contentHeight: content.height
                 ColumnLayout {
-                    width: scrollview.width - 12
+                    id: content
+                    width: scrollbar.policy === ScrollBar.AlwaysOn ? scrollview.width - 20 : scrollview.width - 12
                     x: 12
                     Loader {
                         Layout.fillWidth: true
@@ -188,16 +167,15 @@ Item {
                             if (showAll.checked)
                                 return Qt.createComponent("qrc:/CustomInspectorWidgets/BaseInspector.qml")
 
-                            var ui = Qt.createComponent("qrc:/CustomInspectorWidgets/" + component.getClassName() + "Inspector.qml")
-                            if (ui.status === Component.Ready)
-                            {
+                            var ui = Qt.createComponent(SofaApplication.inspectorsDirectory() + component.getClassName() + ".qml")
+                            if (ui.status === Component.Ready) {
                                 return ui
                             }
                             else {
                                 var list = component.getInheritedClassNames()
 
                                 for (var i = 0 ; i < list.length; ++i) {
-                                    ui = Qt.createComponent("qrc:/CustomInspectorWidgets/" + list[i] + "Inspector.qml")
+                                    ui = Qt.createComponent(SofaApplication.inspectorsDirectory() + list[i] + ".qml")
                                     if (ui.status === Component.Ready) {
                                         return ui
                                     }
@@ -218,21 +196,25 @@ Item {
     Rectangle {
         id: assetArea
         width: parent.width
-        height: parent.height - 42
+        height: parent.height
         color: "transparent"
         visible: selectedAsset !== null
 
         Loader {
+            anchors.fill: parent
             id: assetLoaderId
             source: root.selectedAsset ? root.selectedAsset.getAssetInspectorWidget() : ""
             onLoaded: {
                 if (item) {
-//                    console.error(item)
-                    item.selectedAsset = Qt.binding(function() {
-                        if (root.selectedAsset)
-                            return root.selectedAsset
-                        else return null
-                    })
+                    if (item instanceof DynamicContent_Error)
+                        item.errorMessage = "No inspector widget for this asset type"
+                    else {
+                        item.selectedAsset = Qt.binding(function() {
+                            if (root.selectedAsset)
+                                return root.selectedAsset
+                            else return null
+                        })
+                    }
                     item.parent = assetArea
                 }
             }

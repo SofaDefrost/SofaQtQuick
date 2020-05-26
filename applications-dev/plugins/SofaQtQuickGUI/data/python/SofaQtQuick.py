@@ -9,6 +9,8 @@ import code
 import Sofa
 import Sofa.Core
 import Sofa.Helper
+import SofaApplication
+import splib
 
 ######################################################################
 #################### INTROSPECTING HELPER METHODS ####################
@@ -28,6 +30,8 @@ def collectMetaData(obj):
             data["type"] = "Controller"
         elif issubclass(obj, Sofa.Core.DataEngine):
             data["type"] = "DataEngine"
+        elif issubclass(obj, Sofa.Core.ForceField):
+            data["type"] = "ForceField"
         elif issubclass(obj, Sofa.Core.RawPrefab):
             data["type"] = "SofaPrefab"
         else:
@@ -46,6 +50,7 @@ def collectMetaData(obj):
     data["params"] = inspect.getfullargspec(obj.__original__ if "__original__" in dir(obj) else obj)
     data["sourcecode"] = inspect.getsource(obj.__original__ if "__original__" in dir(obj) else obj)
     data["docstring"] = obj.__original__.__doc__ if "__original__" in dir(obj) else obj.__doc__ if obj.__doc__ != None else ""
+    data["lineno"] = str(inspect.findsource(obj.__original__ if "__original__" in dir(obj) else obj)[1])
     return data
 
 # returns a dictionary of all callable objects in the module, with their type as key
@@ -84,8 +89,8 @@ def getPythonModuleDocstring(mpath):
 def getAbsPythonCallPath(node, rootNode):
     if rootNode.getPathName() == "/":
         if node.getPathName() == "/":
-            return "root"
-        return "root" + node.getPathName().replace("/", ".")
+            return rootNode.name.value
+        return rootNode.name.value + node.getPathName().replace("/", ".")
     else:
         # example:
         # rootNode.getPathName() = "/Snake/physics"
@@ -103,11 +108,23 @@ def buildDataParams(datas, indent, scn):
                 relPath = os.path.relpath(data.getParent().getPathName(), data.getOwner().getContext().getPathName())
                 s += ", " + data.getName()+ "='@" + relPath +"'"
         else:
-            if data.getName() not in ["name","prefabname", "docstring"] and data.isPersistent():
+            if data.getName() not in ["name","prefabname", "docstring"] and (data.isPersistent() or data.isRequired()):
                 if " " not in data.getName() and data.getName() != "Help":
                     if data.getName() != "modulepath":
                         if data.getName() != "depend":
-                            s += ", " + data.getName() + "=" + repr(data.value)
+                            v = repr(data.value)
+                            if "DataFileName" in str(data):
+                                if os.path.exists(os.path.dirname(SofaApplication.getScene()) + "/" + v[1:-1]):
+                                    # If the path exists & is relative
+                                    s += ", " + data.getName() + "='" + v[1:-1] + "'"
+                                elif os.path.relpath(v[1:-1], os.path.dirname(SofaApplication.getScene())):
+                                    # If the path can be expressed relative to the scene file:
+                                    s += ", " + data.getName() + "='" + os.path.relpath(v[1:-1], os.path.dirname(SofaApplication.getScene())) + "'"
+                                else:
+                                    # fallback (relative path, but not relative to scene file)
+                                    s += ", " + data.getName() + "='" + v[1:-1] + "'"
+                            else:
+                                s += ", " + data.getName() + "=" + ( v[v.find('['):v.rfind(']')+1] if "array" in repr(data.value) else repr(data.value))
     return s
 
 def saveRec(node, indent, modules, modulepaths, scn, rootNode):
@@ -163,31 +180,31 @@ def getRelPath(path, relativeTo):
 
 
 def saveAsPythonScene(fileName, node):
-        root = node
-        fd = open(fileName, "w+")
+    root = node
+    fd = open(fileName, "w+")
 
-        fd.write('""" type: SofaContent """\n')
-        fd.write("import sys\n")
-        fd.write("import os\n")
+    fd.write('""" type: SofaContent """\n')
+    fd.write("import sys\n")
+    fd.write("import os\n")
 
-        modules = []
-        modulepaths = []
-        scn = [""]
-        saveRec(root, "    ", modules, modulepaths, scn, root)
+    modules = []
+    modulepaths = []
+    scn = [""]
+    saveRec(root, "    ", modules, modulepaths, scn, root)
 
-        fd.write("# all Paths\n")
-        for p in list(dict.fromkeys(modulepaths)):
-            if p != "":
-                fd.write("sys.path.append('" + getRelPath(p, fileName) +
-                         "')\n")
+    fd.write("# all Paths\n")
+    for p in list(dict.fromkeys(modulepaths)):
+        if p != "":
+            fd.write("sys.path.append('" + getRelPath(p, fileName) +
+                     "')\n")
 
-        fd.write('# all Modules:\n')
-        for m in list(dict.fromkeys(modules)):
-            fd.write("from " + m + " import *\n")
+    fd.write('# all Modules:\n')
+    for m in list(dict.fromkeys(modules)):
+        fd.write("from " + m + " import *\n")
 
-        fd.write("\n\ndef createScene(root):\n")
-        fd.write(scn[0])
-        return True
+    fd.write("\n\ndef createScene("+ node.getName() +"):\n")
+    fd.write(scn[0])
+    return True
 
 def callFunction(file, function, *args, **kwargs):
     # First let's load that script:
@@ -201,40 +218,53 @@ def callFunction(file, function, *args, **kwargs):
     return getattr(m, function)(*args, **kwargs)
 
 
+def createTypeConversionEngine(modulename, node, srcData, dstData, srcType, dstType):
+    engineName = "to_"+dstData.getOwner().getName() + "_" + dstData.getName()
+    if engineName not in node.objects:
+        m = importlib.import_module(modulename)
+        e = splib.TypeConversionEngine(name=engineName, dstType=dstData.typeName())
+        dstData.setParent(e.dst)
+        node.addObject(e)
+    e.addDataConversion(srcData, m.convert)
+
+
 def createPrefabFromNode(fileName, node, name, help):
-        print('Saving prefab')
-        fd = open(fileName, "w+")
-        fd.write('"""type: SofaContent"""\n')
-        fd.write("import sys\n")
-        fd.write("import os\n")
-        fd.write("import Sofa.Core\n")
-
-        modules = []
-        modulepaths = []
-        scn = [""]
-        saveRec(node, "    ", modules, modulepaths, scn, node)
-
-        fd.write("# all Paths\n")
-        for p in list(dict.fromkeys(modulepaths)):
-            fd.write("sys.path.append('" + getRelPath(p, fileName) + "')\n")
-
-        fd.write('# all Modules:\n')
-        for m in list(dict.fromkeys(modules)):
-            fd.write("from " + m + " import *\n")
-
-        fd.write("\n\n@Sofa.PrefabBuilder\n")
-        fd.write("def " + name + "("+node.name.value+"):\n")
-        fd.write("    \"\"\" " + help + " \"\"\"\n")
-        fd.write(scn[0])
-        return True
+    print('Saving prefab in ' + fileName)
+    fd = open(fileName, "w+")
+    fd.write('"""type: SofaContent"""\n')
+    fd.write("import sys\n")
+    fd.write("import os\n")
+    fd.write("import Sofa\n")
+    fd.write("import Sofa.Core\n")
 
 
-def loadMeshAsset(type, path, node):
-    basename = os.path.splitext(os.path.basename(path))[0]
-    loader = node.addObject(type, name="loader", filename=path)
-    vmodel = node.addObject("OglModel", name="vmodel", src=loader.getLinkPath())
-    node.setName(basename)
-    return node
+    modules = []
+    modulepaths = []
+    scn = [""]
+    nodeName = node.getName()
+    print(node.name)
+    node.setName("self")
+    print(nodeName)
+    saveRec(node, "        ", modules, modulepaths, scn, node)
+    print("saved rec")
+    node.setName(nodeName)
+    print(node.name)
+
+    fd.write("# all Paths\n")
+    for p in list(dict.fromkeys(modulepaths)):
+        fd.write("sys.path.append('" + getRelPath(p, fileName) + "')\n")
+
+    fd.write('# all Modules:\n')
+    for m in list(dict.fromkeys(modules)):
+        fd.write("from " + m + " import *\n")
+
+    fd.write("class " + name + "(Sofa.Prefab):\n")
+    fd.write("    \"\"\" " + help + " \"\"\"\n")
+    fd.write("    def __init__(self, *args, **kwargs):\n")
+    fd.write("        Sofa.Prefab.__init__(self, *args, **kwargs)\n")
+    fd.write(scn[0])
+    return True
+
 
 def getPrefabMetaData(func, node):
     """ Retreives all meta data from a python function and stores it as datafields in the given node """
