@@ -98,8 +98,10 @@ def getAbsPythonCallPath(node, rootNode):
         # relPath = physics.visu.eye
         return rootNode.name.value + node.getPathName().replace(rootNode.getPathName(), "").replace("/", ".")
 
-def buildDataParams(datas, indent, scn):
+def buildDataParams(obj, indent, scn):
     s = ""
+    datas = obj.getDataFields()
+    links = obj.getLinks()
     for data in datas:
         if data.hasParent():
             scn[0] += indent + "### THERE WAS A LINK. "
@@ -125,16 +127,23 @@ def buildDataParams(datas, indent, scn):
                                     s += ", " + data.getName() + "='" + v[1:-1] + "'"
                             else:
                                 s += ", " + data.getName() + "=" + ( v[v.find('['):v.rfind(']')+1] if "array" in repr(data.value) else repr(data.value))
+    for link in links:
+        if link.getLinkedBase() and link.getName() != "context":
+            s += ", " + link.getName() + "='" + link.getLinkedPath() + "'"
+
+    entry = Sofa.Core.ObjectFactory.getEntry(obj.getClassName())
+    if entry.defaultTemplate != obj.getTemplateName():
+        s += ", template='" + obj.getTemplateName() + "'"
     return s
 
 def saveRec(node, indent, modules, modulepaths, scn, rootNode):
     for o in node.objects:
-        s = buildDataParams(o.getDataFields(), indent, scn)
+        s = buildDataParams(o, indent, scn)
         scn[0] += indent + getAbsPythonCallPath(node, rootNode) + ".addObject('"
         scn[0] += o.getClassName() + "', name='" + o.name.value + "'" + s + ")\n"
 
     for child in node.children:
-        s = buildDataParams(child.getDataFields(), indent, scn)
+        s = buildDataParams(child, indent, scn)
         if child.getData("prefabname") is not None:
             #print('createPrefab '+str(child.name))
             scn[0] += (indent + "####################### Prefab: " +
@@ -179,6 +188,43 @@ def getRelPath(path, relativeTo):
     return newPath
 
 
+def createGraphNodes(node, root, indent, scn):
+    for c in node.children:
+        scn[0] += indent + getAbsPythonCallPath(c.parents[0], root) + ".addChild('" + c.getName() + "')\n"
+        createGraphNodes(c, root, indent, scn)
+
+
+def createDependencyList(node):
+    dlist = []
+    for o in node.objects:
+        v = o.getDependencies()
+        print("Dependencies for " + o.getName() + ":")
+        for i in v:
+            print (i.getName())
+        dlist += v
+        dlist.append(o)
+    for c in node.children:
+        dlist += createDependencyList(c)
+    return dlist
+
+
+def saveScene(node, indent, scn):
+    root = node
+
+    createGraphNodes(root, root, indent, scn)
+
+    dlist = createDependencyList(root)
+
+    nOccurencesList = {}
+    for item in dlist:
+        nOccurencesList[item] = dlist.count(item)
+
+    for k, v in sorted(nOccurencesList.items(), reverse=True, key=lambda item: item[1]):
+        attributes = buildDataParams(k, indent, scn)
+        parentPath = indent + getAbsPythonCallPath(k.getContext(), root)
+        scn[0] += parentPath + ".addObject('" + k.getClassName() + "', name='" + k.getName() + "'" + attributes + ")\n"
+
+
 def saveAsPythonScene(fileName, node):
     root = node
     fd = open(fileName, "w+")
@@ -190,7 +236,9 @@ def saveAsPythonScene(fileName, node):
     modules = []
     modulepaths = []
     scn = [""]
-    saveRec(root, "    ", modules, modulepaths, scn, root)
+    saveScene(node, "    ", scn)
+
+#    saveRec(root, "    ", modules, modulepaths, scn, root)
 
     fd.write("# all Paths\n")
     for p in list(dict.fromkeys(modulepaths)):
