@@ -32,6 +32,12 @@ using sofa::component::visualmodel::Light ;
 #include <SofaBaseVisual/BaseCamera.h>
 using sofa::component::visualmodel::BaseCamera ;
 
+#include <sofa/core/loader/MeshLoader.h>
+using sofa::core::loader::MeshLoader;
+
+#include <sofa/helper/types/RGBAColor.h>
+using sofa::helper::types::RGBAColor;
+
 #include "ObjectRenderer.h"
 
 namespace sofaqtquick
@@ -98,6 +104,17 @@ void drawCollisionModel(CollisionModel* object, VisualParams *visualParams, bool
 }
 
 
+void drawMeshLoader(MeshLoader* object, VisualParams* params)
+{
+    auto drawTools = params->drawTool();
+    auto positions = sofa::helper::getReadAccessor(object->d_positions);
+    auto bbox = sofa::helper::getReadAccessor(object->f_bbox);
+
+    drawTools->saveLastState();
+    drawTools->drawBoundingBox(bbox->minBBox(), bbox->maxBBox(), 2.0);
+    drawTools->drawPoints(positions.ref(), 5.0, RGBAColor::white());
+    drawTools->restoreLastState();
+}
 
 void drawBaseObject(BaseObject* object, Base* selected, VisualParams* visualParams, bool isSelected)
 {
@@ -119,6 +136,9 @@ void drawBaseObject(BaseObject* object, Base* selected, VisualParams* visualPara
     if(collisionModel)
         drawCollisionModel(collisionModel, visualParams, isSelected) ;    
 
+    auto* meshLoader = dynamic_cast<MeshLoader*>(object);
+    if(meshLoader)
+        drawMeshLoader(meshLoader, visualParams);
 
     auto oldState{ visualParams->displayFlags() };
     visualParams->displayFlags().setShowAll(true);
