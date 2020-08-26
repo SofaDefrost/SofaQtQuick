@@ -235,7 +235,7 @@ void SofaBaseScene::newScene()
     sofa::simulation::graph::init();
     mySofaSimulation = sofa::simulation::graph::getSimulation();
     mySofaRootNode = mySofaSimulation->createNewNode("root");
-    myCppGraph = new SofaBase(mySofaRootNode);
+    myCppGraph = mySofaRootNode;
     setDt(mySofaRootNode->getDt());
     setStatus(Status::Ready);
     emit rootNodeChanged();
@@ -421,7 +421,7 @@ void SofaBaseScene::loadCppGraph()
         mySofaSimulation->unload(mySofaRootNode);
     }
 
-    Node* n = dynamic_cast<Node*>(myCppGraph->rawBase());
+    Node* n = dynamic_cast<Node*>(myCppGraph.get());
     if (n != nullptr)
         mySofaRootNode = sofa::simulation::Node::SPtr(n);
 
@@ -585,9 +585,9 @@ void SofaBaseScene::setSource(const QUrl& newSource)
 
 void SofaBaseScene::setCppSceneGraph(SofaBase* newCppGraph)
 {
-    if (newCppGraph->base() == myCppGraph->base())
+    if (newCppGraph->base() == myCppGraph)
         return;
-    myCppGraph = newCppGraph;
+    myCppGraph = newCppGraph->base();
 
     cppGraphChanged(newCppGraph);
 }

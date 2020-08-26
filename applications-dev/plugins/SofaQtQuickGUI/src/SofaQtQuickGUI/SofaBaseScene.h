@@ -337,9 +337,8 @@ private:
     sofa::simulation::Node::SPtr                mySofaRootNode;
     QTimer*                                     myStepTimer;
 
-    SofaBase*                                   mySelectedComponent {nullptr};
-
-    SofaBase*                                   myCppGraph;
+    sofa::core::objectmodel::Base::SPtr         mySelectedComponent {nullptr};
+    sofa::core::objectmodel::Base::SPtr         myCppGraph;
 
     QList<QObject*>                             m_canvas;
 };

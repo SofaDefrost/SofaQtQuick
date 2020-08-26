@@ -1217,7 +1217,7 @@ class UseOpenGLDebugLoggerRunnable : public QRunnable
 
 sofaqtquick::bindings::SofaBase* SofaBaseApplication::getSelectedComponent() const
 {
-    if(m_selectedComponent == nullptr)
+    if(m_selectedComponent.get() == nullptr)
         return nullptr;
     return new SofaBase(m_selectedComponent);
 }
@@ -1227,11 +1227,11 @@ void SofaBaseApplication::setSelectedComponent(sofaqtquick::bindings::SofaBase* 
 {
     if (selectedComponent == nullptr
         || selectedComponent->rawBase() == nullptr
-        || selectedComponent->rawBase() == m_selectedComponent)
+        || selectedComponent->rawBase() == m_selectedComponent.get())
         return;
-    m_selectedComponent = selectedComponent->rawBase();
-    emit selectedComponentChanged(selectedComponent);
-    emit signalComponent(selectedComponent->getPathName());
+    m_selectedComponent = selectedComponent->base();
+    emit selectedComponentChanged(new SofaBase(m_selectedComponent));
+    emit signalComponent(QString::fromStdString(m_selectedComponent->getPathName()));
 }
 
 void SofaBaseApplication::SetSelectedComponent(sofaqtquick::bindings::SofaBase* selectedComponent)
