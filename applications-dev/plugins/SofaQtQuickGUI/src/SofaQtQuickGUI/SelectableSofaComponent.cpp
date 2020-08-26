@@ -26,7 +26,6 @@ namespace sofaqtquick
 SelectableSofaComponent::SelectableSofaComponent(sofaqtquick::bindings::SofaBaseObject* sofaComponent) : Selectable(),
     mySofaComponent(sofaComponent)
 {
-    QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 SelectableSofaComponent::~SelectableSofaComponent()

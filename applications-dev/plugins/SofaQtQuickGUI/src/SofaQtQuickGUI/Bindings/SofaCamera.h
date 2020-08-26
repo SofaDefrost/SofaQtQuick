@@ -49,7 +49,7 @@ class SOFA_SOFAQTQUICKGUI_API SofaCamera : public Camera
 {
     Q_OBJECT
 
-    Q_PROPERTY(sofaqtquick::bindings::SofaBaseObject* sofaComponent READ sofaComponent WRITE setSofaComponent  NOTIFY sofaComponentChanged)
+    Q_PROPERTY(sofaqtquick::bindings::SofaBase* sofaComponent READ sofaComponent WRITE setSofaComponent  NOTIFY sofaComponentChanged)
 
 signals:
     void sofaComponentChanged();
@@ -60,8 +60,8 @@ public:
     explicit SofaCamera(QObject* parent = nullptr);
     ~SofaCamera() override;
 
-    sofaqtquick::bindings::SofaBaseObject* sofaComponent() const;
-    void setSofaComponent(sofaqtquick::bindings::SofaBaseObject* sofaComponent);
+    sofaqtquick::bindings::SofaBase* sofaComponent() const;
+    void setSofaComponent(sofaqtquick::bindings::SofaBase* sofaComponent);
 
     void setBaseCamera(sofa::component::visualmodel::BaseCamera* baseCamera);
     sofa::component::visualmodel::BaseCamera* getBaseCamera(){ return m_baseCamera; }
@@ -120,7 +120,7 @@ public:
         return nullptr;
     }
 private:
-    sofaqtquick::bindings::SofaBaseObject* m_sofaComponent {nullptr};
+    sofa::core::objectmodel::Base::SPtr m_sofaComponent {nullptr};
     mutable sofa::component::visualmodel::BaseCamera* m_baseCamera {nullptr};
 };
 

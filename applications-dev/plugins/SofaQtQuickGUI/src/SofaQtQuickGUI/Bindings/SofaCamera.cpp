@@ -52,19 +52,17 @@ SofaCamera::~SofaCamera()
 
 }
 
-sofaqtquick::bindings::SofaBaseObject* SofaCamera::sofaComponent() const
+sofaqtquick::bindings::SofaBase* SofaCamera::sofaComponent() const
 {
-    return m_sofaComponent;
+    return new SofaBase(m_sofaComponent);
 }
 
-void SofaCamera::setSofaComponent(sofaqtquick::bindings::SofaBaseObject* sofaComponent)
+void SofaCamera::setSofaComponent(sofaqtquick::bindings::SofaBase* sofaComponent)
 {
-    if (sofaComponent == m_sofaComponent)
+    if (sofaComponent->base() == m_sofaComponent)
         return;
 
-    m_sofaComponent = sofaComponent;
-    if (sofaComponent)
-        m_sofaComponent = new sofaqtquick::bindings::SofaBaseObject(*sofaComponent);
+    m_sofaComponent = sofaComponent->base();
 
     sofaComponentChanged();
 }
@@ -80,7 +78,7 @@ void SofaCamera::handleSofaDataChange()
     if (!m_sofaComponent)
         return;
 
-    Base* baseComponent = m_sofaComponent->rawBase();
+    Base* baseComponent = m_sofaComponent.get();
     if (!baseComponent)
         return;
     

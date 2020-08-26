@@ -99,6 +99,7 @@ SofaProject::SofaProject()
     m_watcher = new ProjectMonitor();
     connect(m_watcher, &ProjectMonitor::directoryChanged, this, &SofaProject::onDirectoryChanged);
     connect(m_watcher, &ProjectMonitor::fileChanged, this, &SofaProject::onFileChanged);
+    QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
 }
 
 SofaProject::~SofaProject()
