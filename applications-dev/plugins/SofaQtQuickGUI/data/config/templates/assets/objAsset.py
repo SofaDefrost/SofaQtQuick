@@ -15,14 +15,13 @@ is_sofa_content = False
 
 # Method called to instantiate the asset in the scene graph.
 def create(node, assetName, assetPath):
-    node.addObject('MeshSTLLoader', name=assetName, filename=assetPath)
-
+    node.addObject('MeshObjLoader', name=assetName, filename=assetPath)
 
 # Method called to open a third party tool when clicking on 'Open in Editor'
 def openThirdParty(assetPath):
     out = subprocess.Popen(['/snap/bin/blender', '--python',
                             os.path.dirname(os.path.realpath(__file__)) + '/openInBlender.py',
-                            '--', 'stl', assetPath],
+                            '--', 'obj', assetPath],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT)
 
