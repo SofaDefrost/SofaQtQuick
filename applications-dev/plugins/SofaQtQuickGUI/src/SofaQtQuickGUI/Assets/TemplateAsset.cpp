@@ -154,4 +154,17 @@ void TemplateAsset::openThirdParty() {
 }
 
 
+QVariantList TemplateAsset::scriptContent()
+{
+    getDetails();
+    QVariantList list;
+    QVariantMap v;
+    v["type"] = QVariant::fromValue(QString("Instantiate"));
+    v["name"] = QVariant::fromValue(QString("Instantiate"));
+    list.append(v);
+    return list;
+
+}
+
+
 } // namespace sofaqtquick

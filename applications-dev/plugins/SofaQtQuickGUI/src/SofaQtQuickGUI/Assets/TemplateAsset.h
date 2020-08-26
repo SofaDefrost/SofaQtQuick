@@ -21,6 +21,7 @@ class TemplateAsset : public Asset
     virtual void getDetails() override {}
     QUrl getAssetInspectorWidget() override;
 
+    Q_PROPERTY(QVariantList scriptContent READ scriptContent NOTIFY scriptContentChanged);
     Q_INVOKABLE QVariant callAssetScriptFunction(const QString& funcName);
 protected:
     Q_INVOKABLE virtual QString getTypeString() override;
@@ -30,6 +31,9 @@ protected:
 private:
     py::module m_assetTemplate;
     std::string m_templatePath;
+
+    QVariantList scriptContent();
+    Q_SIGNAL void scriptContentChanged(QVariantList);
 };
 
 } // namespace sofaqtquick
