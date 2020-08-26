@@ -361,6 +361,10 @@ Rectangle {
 
         function storeExpandedState(index)
         {
+            if (index.row === 0 && index.column === 0)
+                /// Crash in mapToSource when passing index corresponding to root. dunno why..?
+                return
+
             var srcIndex = sceneModel.mapToSource(index)
             var theComponent = basemodel.getBaseFromIndex(srcIndex)
             if (theComponent === null) return;
