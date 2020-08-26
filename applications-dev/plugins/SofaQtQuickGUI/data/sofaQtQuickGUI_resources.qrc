@@ -107,5 +107,6 @@
         <file>icon/edit.png</file>
         <file>icon/clear.png</file>
         <file>icon/ICON_SNAP_MODE.png</file>
+        <file>icon/ICON_UNKNOWN_ASSET.png</file>
     </qresource>
 </RCC>

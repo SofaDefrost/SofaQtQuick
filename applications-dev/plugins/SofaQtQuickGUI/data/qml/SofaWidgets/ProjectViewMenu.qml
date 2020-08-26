@@ -68,7 +68,7 @@ Menu {
 
     SofaAssetMenu {
         id: assetsList
-        enabled: (model && model.scriptContent.length > 1) ? true : false
+        enabled: model ? true : false
         asset: model
         parentNode: SofaApplication.selectedComponent
         modal: true
