@@ -156,8 +156,10 @@ void TemplateAsset::openThirdParty() {
 
 QVariantList TemplateAsset::scriptContent()
 {
-    getDetails();
     QVariantList list;
+    if(!m_assetTemplate.ptr())
+        return list;
+    getDetails();
     QVariantMap v;
     v["type"] = QVariant::fromValue(QString("Instantiate"));
     v["name"] = QVariant::fromValue(QString("Instantiate"));
