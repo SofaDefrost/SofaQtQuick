@@ -21,13 +21,18 @@ class GraphSerializer:
             self.write_import_statements(fd)
 
             self.get_external_dependencies()
-            self.write_definition(fd)
 
             if self.is_prefab:
                 nodeName = self.node.getName()
                 self.node.setName("self")
 
+                fd.write("\n\nclass " + self.name + "(Sofa.Prefab):\n")
+                fd.write("    \"\"\" " + self.help + " \"\"\"\n")
+
                 self.write_prefab_parameters(fd)
+
+                fd.write("    def __init__(self, *args, **kwargs):\n")
+                fd.write("        Sofa.Prefab.__init__(self, *args, **kwargs)\n")
 
                 fd.write("\n\n    def doReInit(self):\n")
 
@@ -38,23 +43,9 @@ class GraphSerializer:
 
                 self.node.setName(nodeName)
             else:
+                fd.write("\n\ndef createScene(root):\n")
+                fd.write('    """ ' + self.help + ' """\n')
                 self.createGraph(fd, created, not_created)
-
-
-    # def add_external_deps_check(self, fd):
-    #     if len(self.external_deps) == 0:
-    #         return
-    #     fd.write(self.indent + "if ")
-    #     first = True
-    #     for item in self.external_deps:
-    #         if not first:
-    #             fd.write(" or ")
-    #         first = False
-    #         itemName = self.getParameterName(item)
-    #         fd.write("not self.findData('"+ itemName +"')")
-
-    #     fd.write(':\n' + self.indent + 'return\n')
-
 
 
     def getParameterName(self, param):
@@ -66,35 +57,23 @@ class GraphSerializer:
 
 
     def write_prefab_parameters(self, fd):
-        fd.write("\n\n    \"\"\" Prefab parameters: \"\"\"\n")
-        fd.write("    def createParams(self, *args, **kwargs):\n")
-        fd.write(self.indent + "# external deps: ")
-        if len(self.external_deps) == 0:
-            fd.write("No external dependency\n")
-            fd.write(self.indent + "pass")
-        else:
-            fd.write(", ".join((dep.getPathName().replace(self.node.getPathName(), "") if isinstance(dep, Sofa.Core.Data) else dep.getName()) for dep in self.external_deps) + "\n")
-        str = ''
+        fd.write("    properties = [\n")
+        first = True
         extParamsList = []
         for item in self.external_deps:
             itemName = self.getParameterName(item)
             if itemName not in extParamsList:
                 extParamsList.append(itemName)
-                if isinstance(item, Sofa.Core.Data):
-                    fd.write(self.indent + "self.addPrefabParameter(name='" + itemName + "', type='Link', help='', default=kwargs.get('"+itemName+"', None))\n")
+                if first:
+                    first = False
                 else:
-                    fd.write(self.indent + "self.addPrefabParameter(name='" + itemName + "', type='Link', help='" + item.getHelp()  + "', default=kwargs.get('"+itemName+"', None))\n")
+                    fd.write(",\n")
 
-
-    def write_definition(self, fd):
-        if self.is_prefab:
-            fd.write("\n\nclass " + self.name + "(Sofa.Prefab):\n")
-            fd.write("    \"\"\" " + self.help + " \"\"\"\n")
-            fd.write("    def __init__(self, *args, **kwargs):\n")
-            fd.write("        Sofa.Prefab.__init__(self, *args, **kwargs)\n")
-        else:
-            fd.write("\n\ndef createScene(root):\n")
-            fd.write('    """ ' + self.help + ' """\n')
+                if isinstance(item, Sofa.Core.Data):
+                    fd.write(self.indent + "{ 'name': '" + itemName + "', 'type': 'Link', 'help': '', 'default': None }")
+                else:
+                    fd.write(self.indent + "{ 'name': '" + itemName + "', 'type': 'Link', 'help': '" + item.getHelp()  + "', 'default': None }")
+        fd.write("\n    ]\n\n\n")
 
 
     def get_external_dependencies(self):
