@@ -64,7 +64,8 @@ Rectangle {
                     var baseIndex = basemodel.getIndexFromBase(c)
                     var sceneIndex = sceneModel.mapFromSource(baseIndex)
                     treeView.expandAncestors(sceneIndex)
-                    treeView.selection.setCurrentIndex(sceneIndex, ItemSelectionModel.ClearAndSelect);
+                    treeView.__listView.currentIndex = 0 // if not set to 0, adding nodes to the graph will only visualy select them
+                    treeView.selection.setCurrentIndex(sceneIndex, ItemSelectionModel.ClearAndSelect)
                 }
             }
         }
@@ -78,10 +79,7 @@ Rectangle {
         anchors.right: parent.right
         sofaScene: SofaApplication.sofaScene
         onSelectedItemChanged: {
-            var baseIndex = basemodel.getIndexFromBase(selectedItem)
-            var sceneIndex = sceneModel.mapFromSource(baseIndex)
-            treeView.expandAncestors(sceneIndex)
-            treeView.selection.setCurrentIndex(sceneIndex, ItemSelectionModel.ClearAndSelect);
+            SofaApplication.selectedComponent = selectedItem
         }
     }
 
@@ -265,13 +263,6 @@ Rectangle {
         selection: ItemSelectionModel {
             id: selectionModel
             model: treeView.model
-            onSelectionChanged:
-            {
-                var srcIndex = sceneModel.mapToSource(currentIndex)
-                var theComponent = basemodel.getBaseFromIndex(srcIndex)
-                SofaApplication.selectedComponent = theComponent
-                SofaApplication.currentProject.selectedAsset = null
-            }
         }
 
         // Expands all ancestors of index
@@ -344,7 +335,7 @@ Rectangle {
         }
 
         function restoreNodeState() {
-            treeView.selection.select(treeView.selection.currentIndex, selectionModel.Deselect)
+//            treeView.selection.select(treeView.selection.currentIndex, selectionModel.Deselect)
             if (Object.keys(nodeSettings.nodeState).length === 0 && SofaApplication.nodeSettings.nodeState !== "") {
                 getExpandedState()
             }
@@ -428,15 +419,20 @@ Rectangle {
             property var tmpParent
 
             Connections {
-                target: treeView
+                target: treeView.selection
                 function onCurrentIndexChanged(currentIndex) {
-                    var srcIndex = sceneModel.mapToSource(treeView.currentIndex)
+
+                    var srcIndex = sceneModel.mapToSource(currentIndex)
                     var treeViewComponent = basemodel.getBaseFromIndex(srcIndex)
+
                     srcIndex = sceneModel.mapToSource(styleData.index)
                     var component = basemodel.getBaseFromIndex(srcIndex)
+
                     if (!component || !treeViewComponent) return;
                     if (treeViewComponent.getPathName() === component.getPathName())
+                    {
                         mouseArea.forceActiveFocus()
+                    }
                 }
             }
 
@@ -790,14 +786,12 @@ Rectangle {
 
                 onClicked:
                 {
-                    forceActiveFocus()
                     var srcIndex = sceneModel.mapToSource(styleData.index)
                     var theComponent = basemodel.getBaseFromIndex(srcIndex)
                     if(mouse.button === Qt.LeftButton) {
                         SofaApplication.selectedComponent = theComponent
-                        SofaApplication.currentProject.selectedAsset = null
+//                        SofaApplication.currentProject.selectedAsset = null
 
-                        treeView.selection.setCurrentIndex(styleData.index, ItemSelectionModel.ClearAndSelect)
                     } else if (mouse.button === Qt.RightButton) {
                         if(theComponent.isNode()) {
                             //                            nodeMenu.currentModelIndex = srcIndex
@@ -876,12 +870,6 @@ Rectangle {
                                 }
                             }
 
-                            var srcIndex = basemodel.getIndexFromBase(parentNode)
-                            var index = sceneModel.mapFromSource(srcIndex)
-                            treeView.collapseAncestors(index)
-                            treeView.expandAncestors(index)
-                            treeView.expand(index)
-
                         } else {
                             if (insertBetween.visible) {
                                 var atPlaceObject = parentNode
@@ -912,13 +900,6 @@ Rectangle {
                                 return
                             }
                         }
-                        treeView.storeExpandedState(treeView.rootIndex)
-                        basemodel.sofaScene = null
-                        basemodel.sofaScene = SofaApplication.sofaScene
-                        treeView.restoreNodeState()
-                        srcIndex = basemodel.getIndexFromBase(parentNode)
-                        index = sceneModel.mapFromSource(srcIndex)
-                        treeView.expand(index)
                         SofaApplication.selectedComponent = src.item
 
                     }
@@ -941,13 +922,12 @@ Rectangle {
                             var assetNode = src.asset.create(node, src.assetName)
                             if (!assetNode)
                                 return
-                            var srcIndex = basemodel.getIndexFromBase(assetNode)
-                            var index = sceneModel.mapFromSource(srcIndex)
-                            treeView.collapseAncestors(index)
-                            treeView.expandAncestors(index)
-                            treeView.expand(index)
                             SofaApplication.selectedComponent = assetNode
                         }
+                        var baseIndex = basemodel.getIndexFromBase(SofaApplication.selectedComponent)
+                        var sceneIndex = sceneModel.mapFromSource(baseIndex)
+
+                        treeView.expand(sceneIndex)
                     }
 
                     onDropped: {
@@ -959,10 +939,6 @@ Rectangle {
                         }
                         insertBetween.visible = false
                         insertInto.visible = false
-                        var srcIndex = basemodel.getIndexFromBase(SofaApplication.selectedComponent)
-                        var idx = sceneModel.mapFromSource(srcIndex)
-                        treeView.__listView.currentIndex = idx.row
-                        treeView.selection.setCurrentIndex(idx, selectionModel.Select)
                     }
                 }
             }

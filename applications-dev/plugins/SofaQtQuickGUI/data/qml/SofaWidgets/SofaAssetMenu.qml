@@ -101,14 +101,7 @@ Menu {
                     return
                 }
 
-                if (basemodel) {
-                    var srcIndex = basemodel.getIndexFromBase(p)
-                    var index = sceneModel.mapFromSource(srcIndex);
-                    treeView.collapseAncestors(index)
-                    treeView.expandAncestors(index)
-                    treeView.expand(index)
-                    treeView.selection.setCurrentIndex(index, selection)
-                }
+                SofaApplication.selectedComponent = p
             }
 
             onTriggered:

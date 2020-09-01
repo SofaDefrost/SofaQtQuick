@@ -50,6 +50,8 @@ Item //
     onSelectedComponentChanged: {
         if (SofaBaseApplicationSingleton.selectedComponent !== selectedComponent)
             SofaBaseApplicationSingleton.selectedComponent = selectedComponent
+
+        signalComponent(selectedComponent.getPathName())
     }
 
     /// Connect to this signal to be notified when a component need to be emphasized.

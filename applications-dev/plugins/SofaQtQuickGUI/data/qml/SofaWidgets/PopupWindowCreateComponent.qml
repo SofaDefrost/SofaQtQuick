@@ -98,7 +98,7 @@ Popup {
                 searchBar.close()
                 if(p!==null)
                 {
-                    SofaApplication.signalComponent(p.getPathName());
+                    SofaApplication.selectedComponent = p
                 }else{
                     messageDialog.text =
                             "Unable to create an object of type '"+text+"' in node "+sofaNode.getName() + "\n"

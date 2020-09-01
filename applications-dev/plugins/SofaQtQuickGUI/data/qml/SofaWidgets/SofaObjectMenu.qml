@@ -151,10 +151,12 @@ Menu {
         text: "Add node..."
         onTriggered: {
             var p = model.getBaseFromIndex(currentModelIndex).getFirstParent()
-            p = p.addChild(p.getNextName("NEWNODE"))
-            if(p){
-                SofaApplication.signalComponent(p.getPathName());
+            var childName = p.getNextName("NEWNODE")
+            var created = p.addChild(childName)
+            if(created){
+                SofaApplication.selectedComponent = p.getChild(childName)
             }
+
         }
     }
 

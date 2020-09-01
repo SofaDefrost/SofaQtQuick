@@ -136,9 +136,10 @@ Menu {
         text: "Add child"
         onTriggered: {
             var p = model.getBaseFromIndex(currentModelIndex)
-            p = p.addChild(p.getNextName("NEWNODE"))
-            if(p){
-                SofaApplication.signalComponent(p.getPathName());
+            var childName = p.getNextName("NEWNODE")
+            var created = p.addChild(childName)
+            if(created){
+                SofaApplication.selectedComponent = p.getChild(childName)
             }
         }
     }
@@ -147,9 +148,10 @@ Menu {
         text: "Add sibling"
         onTriggered: {
             var p = model.getBaseFromIndex(currentModelIndex).getFirstParent()
-            p = p.addChild(p.getNextName("NEWNODE"))
-            if(p){
-                SofaApplication.signalComponent(p.getPathName());
+            var childName = p.getNextName("NEWNODE")
+            var created = p.addChild(childName)
+            if(created) {
+                SofaApplication.selectedComponent = p.getChild(childName)
             }
         }
     }
