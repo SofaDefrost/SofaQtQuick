@@ -875,6 +875,7 @@ Rectangle {
                                 var atPlaceObject = parentNode
                                 parentNode = parentNode.getFirstParent()
                                 parentNode.insertAfter(atPlaceObject, theComponent)
+                                theComponent.setName(theComponent.getName()) // somehow I have to re-write the name for the treeView to replace the previous component's name in the view...
                             }
                             else
                             {
