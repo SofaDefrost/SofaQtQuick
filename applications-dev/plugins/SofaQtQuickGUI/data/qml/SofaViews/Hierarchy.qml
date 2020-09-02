@@ -383,24 +383,32 @@ Rectangle {
             id: itemDelegateID
 
             Rectangle {
-                id: insertBetween
-                implicitWidth: parent.width
-                height: 2
-                x: -1
-                color: "red"
-                visible: false
-            }
-
-
-            Rectangle {
                 id: insertInto
                 anchors.fill: parent
                 border.color: "lightsteelblue"
-                border.width: 2
+                border.width: 1
                 color: "transparent"
-                radius: 3
+                radius: 2
                 visible: false
             }
+
+            Rectangle {
+                id: insertAfter
+                anchors.bottom: parent.bottom
+                implicitWidth: parent.width
+                height: 3
+                color: "transparent"
+                visible: false
+                y: -2
+                Rectangle {
+                    anchors.centerIn: parent
+                    implicitWidth: parent.width
+                    height: 1
+                    color: "red"
+                    visible: parent.visible
+                }
+            }
+
 
             property string origin: "Hierarchy"
             property bool multiparent : false
@@ -790,7 +798,6 @@ Rectangle {
                     var theComponent = basemodel.getBaseFromIndex(srcIndex)
                     if(mouse.button === Qt.LeftButton) {
                         SofaApplication.selectedComponent = theComponent
-//                        SofaApplication.currentProject.selectedAsset = null
 
                     } else if (mouse.button === Qt.RightButton) {
                         if(theComponent.isNode()) {
@@ -835,74 +842,167 @@ Rectangle {
                         else node = theComponent.getFirstParent()
                     }
                     onExited: {
-                        insertBetween.visible = false
+                        insertAfter.visible = false
                         insertInto.visible = false
                     }
                     onPositionChanged: {
                         var verticalsectionHeight = mouseArea.height / 3
-                        if (drag.y < verticalsectionHeight) {
-                            insertBetween.visible = true
-                            insertInto.visible = false
-                        } else {
+                        if (drag.y < verticalsectionHeight * 2) {
+                            insertAfter.visible = false
                             insertInto.visible = true
-                            insertBetween.visible = false
+                        } else {
+                            insertInto.visible = false
+                            insertAfter.visible = true
                         }
                     }
 
+                    function linkCommonDataFields(src, dest) {
+                        for (var fname of src.getDataFields())
+                        {
+                            var sofaData = dest.findData(fname)
+                            if (sofaData !== null)
+                            {
+                                var data = src.getData(sofaData.getName())
+                                if (data !== null && sofaData.isAutoLink())
+                                {
+                                    sofaData.setValue(data.value)
+                                    sofaData.setParent(data)
+                                }
+                            }
+                        }
+                    }
+
+                    function dropNodeIntoObject(src, dest) {
+                        /// Dropping a node on an object creates links between compatible datafields
+                        linkCommonDataFields(src, dest)
+                    }
+
+                    function dropNodeIntoNode(src, dest) {
+                        var oldParent = src.getFirstParent()
+                        if (!oldParent) {
+                            console.error("Cannot drop root into child nodes")
+                            return
+                        }
+                        if (oldParent.getPathName() !== dest.getPathName() && dest.getPathName() !== src.getPathName())
+                            dest.moveChild(src, oldParent)
+                    }
+
+                    function dropObjectIntoNode(src, dest) {
+                        dest.moveObject(src)
+                    }
+
+                    function dropObjectIntoObject(src, dest) {
+                        if (src.getPathName() === dest.getPathName()) {
+                            console.error("Cannot link datafields to themselves")
+                            return;
+                        }
+                        linkCommonDataFields(src, dest)
+                    }
+
+                    function dropNodeAfterObject(src, dest) {
+                        var newParent = dest.getFirstParent()
+                        dropNodeIntoNode(src, newParent)
+                    }
+
+                    function dropNodeAfterNode(src, dest) {
+                        var baseIndex = basemodel.getIndexFromBase(dest)
+                        var idx = sceneModel.mapFromSource(baseIndex)
+
+                        var newParent = null
+                        if (treeView.isExpanded(idx)) {
+                            newParent = dest
+                            dest.insertChild(src, 0)
+                        } else {
+                            newParent = dest.getFirstParent()
+                            dest.getFirstParent().insertNodeAfter(dest, src)
+                        }
+
+                        baseIndex = basemodel.getIndexFromBase(newParent)
+                        idx = sceneModel.mapFromSource(baseIndex)
+                        treeView.collapse(idx)
+                        treeView.expand(idx)
+
+                    }
+
+                    function dropObjectAfterNode(src, dest) {
+                        var baseIndex = basemodel.getIndexFromBase(dest)
+                        var idx = sceneModel.mapFromSource(baseIndex)
+
+                        if (treeView.isExpanded(idx))
+                            dest.insertObject(src, 0)
+                        else
+                            dest.getFirstParent().moveObject(src)
+
+                        baseIndex = basemodel.getIndexFromBase(dest)
+                        idx = sceneModel.mapFromSource(baseIndex)
+                        treeView.collapse(idx)
+                        treeView.expand(idx)
+                    }
+
+                    function dropObjectAfterObject(src, dest) {
+                        if (src === dest)
+                            return
+                        var newContext = dest.getFirstParent()
+                        newContext.insertObjectAfter(dest, src)
+                        var baseIndex = basemodel.getIndexFromBase(newContext)
+                        var idx = sceneModel.mapFromSource(baseIndex)
+                        treeView.collapse(idx)
+                        treeView.expand(idx)
+                    }
+
+
                     function dropFromHierarchy(src) {
                         print("drop from Hierarchy: " + src.item.getName())
-                        var theComponent = src.item
+                        var source = src.item
 
                         var newIndex = styleData.index
                         newIndex = sceneModel.mapToSource(newIndex)
-                        var parentNode = basemodel.getBaseFromIndex(newIndex)
+                        var dst = basemodel.getBaseFromIndex(newIndex)
 
-                        if (parentNode.isNode()) {
-                            var oldParent = theComponent.getFirstParent()
-
-                            if (oldParent.getPathName() !== parentNode.getPathName() &&
-                                    parentNode.getPathName() !== theComponent.getPathName()) {
-                                if (theComponent.isNode()) {
-                                    parentNode.moveChild(theComponent, oldParent)
-                                }
-                                else {
-                                    parentNode.moveObject(theComponent)
-                                }
-                            }
-
-                        } else {
-                            if (insertBetween.visible) {
-                                var atPlaceObject = parentNode
-                                parentNode = parentNode.getFirstParent()
-                                parentNode.insertAfter(atPlaceObject, theComponent)
-                                theComponent.setName(theComponent.getName()) // somehow I have to re-write the name for the treeView to replace the previous component's name in the view...
-                            }
-                            else
+                        if (insertAfter.visible) {
+                            if (source.isNode() && dst.isNode())
                             {
-                                if (theComponent.getPathName() === parentNode.getPathName()) {
-                                    console.error("Cannot link datafields to themselves")
-                                    return;
-                                }
-
-                                for (var fname of theComponent.getDataFields())
-                                {
-                                    var sofaData = parentNode.findData(fname)
-                                    if (sofaData !== null)
-                                    {
-                                        var data = theComponent.getData(sofaData.getName())
-                                        if (data !== null && sofaData.isAutoLink())
-                                        {
-                                            sofaData.setValue(data.value)
-                                            sofaData.setParent(data)
-                                        }
-                                    }
-                                }
-                                SofaApplication.selectedComponent = parentNode
-                                return
+                                dropNodeAfterNode(source, dst)
+                                SofaApplication.selectedComponent = source
+                            }
+                            else if (source.isNode() && !dst.isNode())
+                            {
+                                dropNodeAfterObject(source, dst)
+                                SofaApplication.selectedComponent = source
+                            }
+                            else if (!source.isNode() && dst.isNode())
+                            {
+                                dropObjectAfterNode(source, dst)
+                                SofaApplication.selectedComponent = source
+                            }
+                            else if (!source.isNode() && !dst.isNode())
+                            {
+                                dropObjectAfterObject(source, dst)
+                                SofaApplication.selectedComponent = source
                             }
                         }
-                        SofaApplication.selectedComponent = src.item
-
+                        else {
+                            if (source.isNode() && dst.isNode())
+                            {
+                                dropNodeIntoNode(source, dst)
+                                SofaApplication.selectedComponent = source
+                            }
+                            else if (source.isNode() && !dst.isNode())
+                            {
+                                dropNodeIntoObject(source, dst)
+                                SofaApplication.selectedComponent = dst
+                            }
+                            else if (!source.isNode() && dst.isNode())
+                            {
+                                dropObjectIntoNode(source, dst)
+                                SofaApplication.selectedComponent = source
+                            }
+                            else if (!source.isNode() && !dst.isNode())
+                            {
+                                dropObjectIntoObject(source, dst)
+                                SofaApplication.selectedComponent = dst
+                            }
+                        }
                     }
 
                     function dropFromProjectView(src) {
@@ -938,7 +1038,7 @@ Rectangle {
                         else {
                             dropFromProjectView(drag.source)
                         }
-                        insertBetween.visible = false
+                        insertAfter.visible = false
                         insertInto.visible = false
                     }
                 }

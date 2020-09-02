@@ -38,6 +38,14 @@ Item {
     anchors.fill: parent
     property var selectedAsset: SofaApplication.currentProject.selectedAsset
 
+    Connections {
+        target: SofaApplication
+        function onSignalComponent(path) {
+             SofaApplication.currentProject.selectedAsset = null
+        }
+
+    }
+
     Rectangle {
         id: topRect
         color: SofaApplication.style.contentBackgroundColor
