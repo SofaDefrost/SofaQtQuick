@@ -35,6 +35,7 @@ import SofaWidgets 1.0
 
 Item {
     id: root
+
     anchors.fill: parent
     property var selectedAsset: SofaApplication.currentProject.selectedAsset
 
@@ -51,45 +52,60 @@ Item {
                 Layout.preferredHeight: 20
                 Layout.fillWidth: true
                 color: "transparent"
+
                 MouseArea {
                     anchors.fill: parent
                     onPressed: {
                         print("Mouse area pressed in a rectangle.")
                         root.forceActiveFocus()
                     }
-                }
 
 
-                DropArea {
-                    id: dropArea
-                    anchors.fill: parent
-                    onDropped: {
-                        /// Drop of a SofaBase form the hierachy. This indicate that we want
-                        /// to automatically connect all the data fields with similar names.
-                        if (drag.source.origin === "Hierarchy") {
-                            var droppedItem = drag.source.item
-                            /// Ecmascript6.0 'for..of' is valid, don't trust qtcreator there is an error
-                            if (droppedItem.getPathName() === SofaApplication.selectedComponent.getPathName()) {
-                                console.error("Cannot link datafields to themselves")
-                                return;
-                            }
-                            marea.cursorShape = Qt.WaitCursor
-                            for (var fname of droppedItem.getDataFields())
-                            {
-                                var sofaData = SofaApplication.selectedComponent.findData(fname);
-                                if (sofaData !== null) {
-                                    var data = drag.source.item.getData(sofaData.getName())
-                                    if (data !== null && sofaData.isAutoLink())
-                                    {
-                                        sofaData.setValue(data.value)
-                                        sofaData.setParent(data)
+                    DropArea {
+                        id: dropArea
+                        property string dropGroup: ""
+                        property var dropItem
+                        anchors.fill: parent
+                        onEntered: {
+                            dropGroup = "all"
+                            dropItem = drag.source.item
+                        }
+
+                        onExited: {
+                            dropGroup = ""
+                            dropItem = null
+                        }
+
+                        onDropped: {
+                            /// Drop of a SofaBase form the hierachy. This indicate that we want
+                            /// to automatically connect all the data fields with similar names.
+                            if (drag.source.origin === "Hierarchy") {
+                                var droppedItem = drag.source.item
+                                /// Ecmascript6.0 'for..of' is valid, don't trust qtcreator there is an error
+                                if (droppedItem.getPathName() === SofaApplication.selectedComponent.getPathName()) {
+                                    console.error("Cannot link datafields to themselves")
+                                    return;
+                                }
+                                marea.cursorShape = Qt.WaitCursor
+                                for (var fname of droppedItem.getDataFields())
+                                {
+                                    var sofaData = SofaApplication.selectedComponent.findData(fname);
+                                    if (sofaData !== null) {
+                                        var data = drag.source.item.getData(sofaData.getName())
+                                        if (data !== null && sofaData.isAutoLink())
+                                        {
+                                            sofaData.setValue(data.value)
+                                            sofaData.setParent(data)
+                                        }
                                     }
                                 }
+                                var src = customInspectorLoader.sourceComponent
+                                customInspectorLoader.sourceComponent = null
+                                customInspectorLoader.sourceComponent = src
+                                marea.cursorShape = Qt.ArrowCursor
                             }
-                            var src = customInspectorLoader.sourceComponent
-                            customInspectorLoader.sourceComponent = null
-                            customInspectorLoader.sourceComponent = src
-                            marea.cursorShape = Qt.ArrowCursor
+                            dropGroup = ""
+                            dropItem = null
                         }
                     }
                 }
@@ -153,8 +169,8 @@ Item {
                     width: scrollbar.policy === ScrollBar.AlwaysOn ? scrollview.width - 20 : scrollview.width - 12
                     x: 12
                     Loader {
-                        Layout.fillWidth: true
                         id: customInspectorLoader
+                        Layout.fillWidth: true
                         function getWidget(component)
                         {
                             if (!component)
@@ -182,6 +198,8 @@ Item {
                         sourceComponent: getWidget(SofaApplication.selectedComponent)
                         onLoaded: {
                             item.showAll = Qt.binding(function(){ return showAll.currentIndex === 0})
+                            item.dropGroup = Qt.binding(function(){ return dropArea.dropGroup })
+                            item.dropItem = Qt.binding(function(){ return dropArea.dropItem })
                         }
                     }
                 }
