@@ -747,10 +747,6 @@ Rectangle {
                         var srcIndex = sceneModel.mapToSource(index)
                         var theComponent = basemodel.getBaseFromIndex(srcIndex)
                         item = theComponent
-<<<<<<< Updated upstream
-                        SofaApplication.selectedComponent = theComponent
-=======
->>>>>>> Stashed changes
                     }
                 }
 
