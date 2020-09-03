@@ -747,7 +747,7 @@ Rectangle {
                         var srcIndex = sceneModel.mapToSource(index)
                         var theComponent = basemodel.getBaseFromIndex(srcIndex)
                         item = theComponent
-                        print("Dragging " + item.getName())
+                        SofaApplication.selectedComponent = theComponent
                     }
                 }
 
@@ -819,7 +819,6 @@ Rectangle {
                                 objectMenu.sourceLocation = theComponent.getSourceLocation()
                                 objectMenu.creationLocation = theComponent.getInstanciationLocation()
                             }
-                            //                            objectMenu.currentModelIndex = srcIndex
                             objectMenu.name = theComponent.getData("name");
                             pos = SofaApplication.getIdealPopupPos(objectMenu, mouseArea)
                             objectMenu.x = mouseArea.mouseX + pos[0]
@@ -919,9 +918,10 @@ Rectangle {
 
                         baseIndex = basemodel.getIndexFromBase(newParent)
                         idx = sceneModel.mapFromSource(baseIndex)
-                        treeView.collapse(idx)
+                        if (treeView.isExpanded(idx)) {
+                            treeView.collapse(idx)
+                        }
                         treeView.expand(idx)
-
                     }
 
                     function dropObjectAfterNode(src, dest) {
@@ -935,7 +935,9 @@ Rectangle {
 
                         baseIndex = basemodel.getIndexFromBase(dest)
                         idx = sceneModel.mapFromSource(baseIndex)
-                        treeView.collapse(idx)
+                        if (treeView.isExpanded(idx)) {
+                            treeView.collapse(idx)
+                        }
                         treeView.expand(idx)
                     }
 
@@ -944,9 +946,11 @@ Rectangle {
                             return
                         var newContext = dest.getFirstParent()
                         newContext.insertObjectAfter(dest, src)
-                        var baseIndex = basemodel.getIndexFromBase(newContext)
+                        var baseIndex = basemodel.getIndexFromBase(src.getFirstParent())
                         var idx = sceneModel.mapFromSource(baseIndex)
-                        treeView.collapse(idx)
+                        if (treeView.isExpanded(idx)) {
+                            treeView.collapse(idx)
+                        }
                         treeView.expand(idx)
                     }
 
@@ -974,11 +978,13 @@ Rectangle {
                             {
                                 dropObjectAfterNode(source, dst)
                                 SofaApplication.selectedComponent = source
+                                source.setName(source.getName())
                             }
                             else if (!source.isNode() && !dst.isNode())
                             {
                                 dropObjectAfterObject(source, dst)
                                 SofaApplication.selectedComponent = source
+                                source.setName(source.getName())
                             }
                         }
                         else {
@@ -1028,7 +1034,8 @@ Rectangle {
                         var baseIndex = basemodel.getIndexFromBase(SofaApplication.selectedComponent)
                         var sceneIndex = sceneModel.mapFromSource(baseIndex)
 
-                        treeView.expand(sceneIndex)
+                        if (!treeView.isExpanded(sceneIndex))
+                            treeView.expand(sceneIndex)
                     }
 
                     onDropped: {
