@@ -747,7 +747,10 @@ Rectangle {
                         var srcIndex = sceneModel.mapToSource(index)
                         var theComponent = basemodel.getBaseFromIndex(srcIndex)
                         item = theComponent
+<<<<<<< Updated upstream
                         SofaApplication.selectedComponent = theComponent
+=======
+>>>>>>> Stashed changes
                     }
                 }
 
@@ -900,7 +903,17 @@ Rectangle {
 
                     function dropNodeAfterObject(src, dest) {
                         var newParent = dest.getFirstParent()
-                        dropNodeIntoNode(src, newParent)
+                        if (newParent.objects().last().getPathName() === dest.getPathName()) {
+                            newParent.insertChild(src, 0)
+                        } else
+                            dropNodeIntoNode(src, newParent)
+                        var baseIndex = basemodel.getIndexFromBase(newParent)
+                        var idx = sceneModel.mapFromSource(baseIndex)
+                        if (treeView.isExpanded(idx)) {
+                            treeView.collapse(idx)
+                        }
+                        treeView.expand(idx)
+
                     }
 
                     function dropNodeAfterNode(src, dest) {
@@ -958,6 +971,7 @@ Rectangle {
                     function dropFromHierarchy(src) {
                         print("drop from Hierarchy: " + src.item.getName())
                         var source = src.item
+                        SofaApplication.selectedComponent = src.item
 
                         var newIndex = styleData.index
                         newIndex = sceneModel.mapToSource(newIndex)
