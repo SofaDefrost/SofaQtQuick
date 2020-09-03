@@ -413,20 +413,31 @@ void SofaNode::insertObjectAfter(SofaBaseObject* afterObject, SofaBaseObject* ob
 {
     auto olist = selfptr()->object;
     size_t i;
+    bool isBefore = false;
     for (i = 0 ; i < olist.size() ; ++i)
+    {
+        if (olist[unsigned(i)].get() == obj->self())
+            isBefore = true;
         if (olist[unsigned(i)].get() == afterObject->self())
             break;
+    }
+    if (!isBefore) i++;
     if (i != olist.size())
+    {
+        std::cout << "inserting at " << i << std::endl;
         insertObject(obj, unsigned(i));
+    }
 }
 
 void SofaNode::insertObject(SofaBaseObject* obj, unsigned int position)
 {
-    BaseNode* p = obj->selfptr()->getContext()->toBaseNode();
-    SofaNode prev_parent(DAGNode::SPtr(dynamic_cast<DAGNode*>(p)));
-    if ((isInAPrefab() && !attemptToBreakPrefab())
-            || (prev_parent.isInAPrefab() && !prev_parent.attemptToBreakPrefab()))
-        return;
+    if (obj->getFirstParent()) {
+        BaseNode* p = obj->selfptr()->getContext()->toBaseNode();
+        SofaNode prev_parent(DAGNode::SPtr(dynamic_cast<DAGNode*>(p)));
+        if ((isInAPrefab() && !attemptToBreakPrefab())
+                || (prev_parent.isInAPrefab() && !prev_parent.attemptToBreakPrefab()))
+            return;
+    }
     DAGNode* _this = self();
     _this->moveObject(obj->selfptr());
 
@@ -439,20 +450,28 @@ void SofaNode::insertNodeAfter(SofaNode* afterNode, SofaNode* node)
 {
     auto olist = selfptr()->child;
     size_t i;
+    bool isBefore = false;
     for (i = 0 ; i < olist.size() ; ++i)
+    {
+        if (olist[unsigned(i)].get() == node->self())
+            isBefore = true;
         if (olist[unsigned(i)].get() == afterNode->self())
             break;
+    }
+    if (!isBefore) i++;
     if (i != olist.size())
         insertChild(node, unsigned(i));
 }
 
 void SofaNode::insertChild(SofaNode* node, unsigned int position)
 {
-    BaseNode* p = node->selfptr()->getContext()->toBaseNode();
-    SofaNode prev_parent(DAGNode::SPtr(dynamic_cast<DAGNode*>(p)));
-    if ((isInAPrefab() && !attemptToBreakPrefab())
-            || (prev_parent.isInAPrefab() && !prev_parent.attemptToBreakPrefab()))
-        return;
+    if (node->getFirstParent()) {
+        BaseNode* p = node->selfptr()->getFirstParent()->toBaseNode();
+        SofaNode prev_parent(DAGNode::SPtr(dynamic_cast<DAGNode*>(p)));
+        if ((isInAPrefab() && !attemptToBreakPrefab())
+                || (prev_parent.isInAPrefab() && !prev_parent.attemptToBreakPrefab()))
+            return;
+    }
     DAGNode* _this = self();
     _this->moveChild(node->selfptr());
 
