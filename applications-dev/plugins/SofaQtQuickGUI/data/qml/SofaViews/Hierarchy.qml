@@ -64,7 +64,8 @@ Rectangle {
                     var baseIndex = basemodel.getIndexFromBase(c)
                     var sceneIndex = sceneModel.mapFromSource(baseIndex)
                     treeView.expandAncestors(sceneIndex)
-                    treeView.selection.setCurrentIndex(sceneIndex, ItemSelectionModel.ClearAndSelect);
+                    treeView.__listView.currentIndex = 0 // if not set to 0, adding nodes to the graph will only visualy select them
+                    treeView.selection.setCurrentIndex(sceneIndex, ItemSelectionModel.ClearAndSelect)
                 }
             }
         }
@@ -78,10 +79,7 @@ Rectangle {
         anchors.right: parent.right
         sofaScene: SofaApplication.sofaScene
         onSelectedItemChanged: {
-            var baseIndex = basemodel.getIndexFromBase(selectedItem)
-            var sceneIndex = sceneModel.mapFromSource(baseIndex)
-            treeView.expandAncestors(sceneIndex)
-            treeView.selection.setCurrentIndex(sceneIndex, ItemSelectionModel.ClearAndSelect);
+            SofaApplication.selectedComponent = selectedItem
         }
     }
 
@@ -265,13 +263,6 @@ Rectangle {
         selection: ItemSelectionModel {
             id: selectionModel
             model: treeView.model
-            onSelectionChanged:
-            {
-                var srcIndex = sceneModel.mapToSource(currentIndex)
-                var theComponent = basemodel.getBaseFromIndex(srcIndex)
-                SofaApplication.selectedComponent = theComponent
-                SofaApplication.currentProject.selectedAsset = null
-            }
         }
 
         // Expands all ancestors of index
@@ -344,7 +335,7 @@ Rectangle {
         }
 
         function restoreNodeState() {
-            treeView.selection.select(treeView.selection.currentIndex, selectionModel.Deselect)
+//            treeView.selection.select(treeView.selection.currentIndex, selectionModel.Deselect)
             if (Object.keys(nodeSettings.nodeState).length === 0 && SofaApplication.nodeSettings.nodeState !== "") {
                 getExpandedState()
             }
@@ -391,6 +382,33 @@ Rectangle {
         itemDelegate: Rectangle {
             id: itemDelegateID
 
+            Rectangle {
+                id: insertInto
+                anchors.fill: parent
+                border.color: "lightsteelblue"
+                border.width: 1
+                color: "transparent"
+                radius: 2
+                visible: false
+            }
+
+            Rectangle {
+                id: insertAfter
+                anchors.bottom: parent.bottom
+                implicitWidth: parent.width
+                height: 3
+                color: "transparent"
+                visible: false
+                y: -2
+                Rectangle {
+                    anchors.centerIn: parent
+                    implicitWidth: parent.width
+                    height: 1
+                    color: "red"
+                    visible: parent.visible
+                }
+            }
+
 
             property string origin: "Hierarchy"
             property bool multiparent : false
@@ -409,15 +427,20 @@ Rectangle {
             property var tmpParent
 
             Connections {
-                target: treeView
+                target: treeView.selection
                 function onCurrentIndexChanged(currentIndex) {
-                    var srcIndex = sceneModel.mapToSource(treeView.currentIndex)
+
+                    var srcIndex = sceneModel.mapToSource(currentIndex)
                     var treeViewComponent = basemodel.getBaseFromIndex(srcIndex)
+
                     srcIndex = sceneModel.mapToSource(styleData.index)
                     var component = basemodel.getBaseFromIndex(srcIndex)
+
                     if (!component || !treeViewComponent) return;
                     if (treeViewComponent.getPathName() === component.getPathName())
+                    {
                         mouseArea.forceActiveFocus()
+                    }
                 }
             }
 
@@ -716,13 +739,14 @@ Rectangle {
                 id: dragItem
                 property string origin: "Hierarchy"
                 property SofaBase item
+                property var dropInto: true
+                property var dropBetween: true
                 Drag.active: mouseArea.drag.active
                 Drag.onActiveChanged: {
                     if (Drag.active) {
                         var srcIndex = sceneModel.mapToSource(index)
                         var theComponent = basemodel.getBaseFromIndex(srcIndex)
                         item = theComponent
-                        print("Dragging " + item.getName())
                     }
                 }
 
@@ -739,8 +763,10 @@ Rectangle {
                 visible: mouseArea.containsMouse
             }
 
+
             MouseArea {
                 id: mouseArea
+
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 anchors.fill: parent
                 hoverEnabled: true
@@ -767,14 +793,11 @@ Rectangle {
 
                 onClicked:
                 {
-                    forceActiveFocus()
                     var srcIndex = sceneModel.mapToSource(styleData.index)
                     var theComponent = basemodel.getBaseFromIndex(srcIndex)
                     if(mouse.button === Qt.LeftButton) {
                         SofaApplication.selectedComponent = theComponent
-                        SofaApplication.currentProject.selectedAsset = null
 
-                        treeView.selection.setCurrentIndex(styleData.index, ItemSelectionModel.ClearAndSelect)
                     } else if (mouse.button === Qt.RightButton) {
                         if(theComponent.isNode()) {
                             //                            nodeMenu.currentModelIndex = srcIndex
@@ -795,7 +818,6 @@ Rectangle {
                                 objectMenu.sourceLocation = theComponent.getSourceLocation()
                                 objectMenu.creationLocation = theComponent.getInstanciationLocation()
                             }
-                            //                            objectMenu.currentModelIndex = srcIndex
                             objectMenu.name = theComponent.getData("name");
                             pos = SofaApplication.getIdealPopupPos(objectMenu, mouseArea)
                             objectMenu.x = mouseArea.mouseX + pos[0]
@@ -817,31 +839,185 @@ Rectangle {
                         if (isNode) node = theComponent
                         else node = theComponent.getFirstParent()
                     }
+                    onExited: {
+                        insertAfter.visible = false
+                        insertInto.visible = false
+                    }
+                    onPositionChanged: {
+                        var verticalsectionHeight = mouseArea.height / 3
+                        if (drag.y < verticalsectionHeight * 2) {
+                            insertAfter.visible = false
+                            insertInto.visible = true
+                        } else {
+                            insertInto.visible = false
+                            insertAfter.visible = true
+                        }
+                    }
+
+                    function linkCommonDataFields(src, dest) {
+                        for (var fname of src.getDataFields())
+                        {
+                            var sofaData = dest.findData(fname)
+                            if (sofaData !== null)
+                            {
+                                var data = src.getData(sofaData.getName())
+                                if (data !== null && sofaData.isAutoLink())
+                                {
+                                    sofaData.setValue(data.value)
+                                    sofaData.setParent(data)
+                                }
+                            }
+                        }
+                    }
+
+                    function dropNodeIntoObject(src, dest) {
+                        /// Dropping a node on an object creates links between compatible datafields
+                        linkCommonDataFields(src, dest)
+                    }
+
+                    function dropNodeIntoNode(src, dest) {
+                        var oldParent = src.getFirstParent()
+                        if (!oldParent) {
+                            console.error("Cannot drop root into child nodes")
+                            return
+                        }
+                        if (oldParent.getPathName() !== dest.getPathName() && dest.getPathName() !== src.getPathName())
+                            dest.moveChild(src, oldParent)
+                    }
+
+                    function dropObjectIntoNode(src, dest) {
+                        dest.moveObject(src)
+                    }
+
+                    function dropObjectIntoObject(src, dest) {
+                        if (src.getPathName() === dest.getPathName()) {
+                            console.error("Cannot link datafields to themselves")
+                            return;
+                        }
+                        linkCommonDataFields(src, dest)
+                    }
+
+                    function dropNodeAfterObject(src, dest) {
+                        var newParent = dest.getFirstParent()
+                        if (newParent.objects().last().getPathName() === dest.getPathName()) {
+                            newParent.insertChild(src, 0)
+                        } else
+                            dropNodeIntoNode(src, newParent)
+                        var baseIndex = basemodel.getIndexFromBase(newParent)
+                        var idx = sceneModel.mapFromSource(baseIndex)
+                        if (treeView.isExpanded(idx)) {
+                            treeView.collapse(idx)
+                        }
+                        treeView.expand(idx)
+
+                    }
+
+                    function dropNodeAfterNode(src, dest) {
+                        var baseIndex = basemodel.getIndexFromBase(dest)
+                        var idx = sceneModel.mapFromSource(baseIndex)
+
+                        var newParent = null
+                        if (treeView.isExpanded(idx)) {
+                            newParent = dest
+                            dest.insertChild(src, 0)
+                        } else {
+                            newParent = dest.getFirstParent()
+                            dest.getFirstParent().insertNodeAfter(dest, src)
+                        }
+
+                        baseIndex = basemodel.getIndexFromBase(newParent)
+                        idx = sceneModel.mapFromSource(baseIndex)
+                        if (treeView.isExpanded(idx)) {
+                            treeView.collapse(idx)
+                        }
+                        treeView.expand(idx)
+                    }
+
+                    function dropObjectAfterNode(src, dest) {
+                        var baseIndex = basemodel.getIndexFromBase(dest)
+                        var idx = sceneModel.mapFromSource(baseIndex)
+
+                        if (treeView.isExpanded(idx))
+                            dest.insertObject(src, 0)
+                        else
+                            dest.getFirstParent().moveObject(src)
+
+                        baseIndex = basemodel.getIndexFromBase(dest)
+                        idx = sceneModel.mapFromSource(baseIndex)
+                        if (treeView.isExpanded(idx)) {
+                            treeView.collapse(idx)
+                        }
+                        treeView.expand(idx)
+                    }
+
+                    function dropObjectAfterObject(src, dest) {
+                        if (src === dest)
+                            return
+                        var newContext = dest.getFirstParent()
+                        newContext.insertObjectAfter(dest, src)
+                        var baseIndex = basemodel.getIndexFromBase(src.getFirstParent())
+                        var idx = sceneModel.mapFromSource(baseIndex)
+                        if (treeView.isExpanded(idx)) {
+                            treeView.collapse(idx)
+                        }
+                        treeView.expand(idx)
+                    }
+
 
                     function dropFromHierarchy(src) {
                         print("drop from Hierarchy: " + src.item.getName())
-                        var theComponent = src.item
+                        var source = src.item
+                        SofaApplication.selectedComponent = src.item
 
                         var newIndex = styleData.index
                         newIndex = sceneModel.mapToSource(newIndex)
-                        var parentNode = basemodel.getBaseFromIndex(newIndex)
+                        var dst = basemodel.getBaseFromIndex(newIndex)
 
-                        if (parentNode.isNode()) {
-                            var oldParent = theComponent.getFirstParent()
-
-                            if (oldParent.getPathName() !== parentNode.getPathName() &&
-                                    parentNode.getPathName() !== theComponent.getPathName()) {
-                                if (theComponent.isNode()) {
-                                    parentNode.moveChild(theComponent, oldParent)
-                                }
-                                else {
-                                    parentNode.moveObject(theComponent)
-                                }
+                        if (insertAfter.visible) {
+                            if (source.isNode() && dst.isNode())
+                            {
+                                dropNodeAfterNode(source, dst)
+                                SofaApplication.selectedComponent = source
                             }
-                        } else {
-                            var atPlaceObject = parentNode
-                            parentNode = parentNode.getFirstParent()
-                            parentNode.insertAfter(atPlaceObject, theComponent)
+                            else if (source.isNode() && !dst.isNode())
+                            {
+                                dropNodeAfterObject(source, dst)
+                                SofaApplication.selectedComponent = source
+                            }
+                            else if (!source.isNode() && dst.isNode())
+                            {
+                                dropObjectAfterNode(source, dst)
+                                SofaApplication.selectedComponent = source
+                                source.setName(source.getName())
+                            }
+                            else if (!source.isNode() && !dst.isNode())
+                            {
+                                dropObjectAfterObject(source, dst)
+                                SofaApplication.selectedComponent = source
+                                source.setName(source.getName())
+                            }
+                        }
+                        else {
+                            if (source.isNode() && dst.isNode())
+                            {
+                                dropNodeIntoNode(source, dst)
+                                SofaApplication.selectedComponent = source
+                            }
+                            else if (source.isNode() && !dst.isNode())
+                            {
+                                dropNodeIntoObject(source, dst)
+                                SofaApplication.selectedComponent = dst
+                            }
+                            else if (!source.isNode() && dst.isNode())
+                            {
+                                dropObjectIntoNode(source, dst)
+                                SofaApplication.selectedComponent = source
+                            }
+                            else if (!source.isNode() && !dst.isNode())
+                            {
+                                dropObjectIntoObject(source, dst)
+                                SofaApplication.selectedComponent = dst
+                            }
                         }
                     }
 
@@ -863,15 +1039,13 @@ Rectangle {
                             var assetNode = src.asset.create(node, src.assetName)
                             if (!assetNode)
                                 return
-                            var srcIndex = basemodel.getIndexFromBase(assetNode)
-                            var index = sceneModel.mapFromSource(srcIndex)
-                            treeView.collapseAncestors(index)
-                            treeView.expandAncestors(index)
-                            treeView.expand(index)
-                            treeView.__listView.currentIndex = index.row
-                            treeView.selection.setCurrentIndex(index, selectionModel.Select)
                             SofaApplication.selectedComponent = assetNode
                         }
+                        var baseIndex = basemodel.getIndexFromBase(SofaApplication.selectedComponent)
+                        var sceneIndex = sceneModel.mapFromSource(baseIndex)
+
+                        if (!treeView.isExpanded(sceneIndex))
+                            treeView.expand(sceneIndex)
                     }
 
                     onDropped: {
@@ -881,6 +1055,8 @@ Rectangle {
                         else {
                             dropFromProjectView(drag.source)
                         }
+                        insertAfter.visible = false
+                        insertInto.visible = false
                     }
                 }
             }
