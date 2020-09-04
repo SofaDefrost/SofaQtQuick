@@ -148,7 +148,7 @@ void SofaLinkCompletionModel::updateModel()
         }
     }
 
-    if (m_isComponent)
+    if (!m_isComponent)
     {
         for (auto data : lastValid->getDataFields())
         {

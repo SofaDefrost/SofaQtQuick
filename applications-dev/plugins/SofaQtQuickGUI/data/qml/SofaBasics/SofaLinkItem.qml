@@ -101,14 +101,15 @@ ColumnLayout {
                 model: SofaLinkCompletionModel {
                     id: completionModel
                     sofaData: control.sofaData
+                    isComponent: false
                     onModelReset: {
                         listView.implicitHeight = completionModel.rowCount() * 20
                         parent.contentHeight = completionModel.rowCount() * 20
                         parent.height = parent.contentHeight
                     }
                 }
-                Keys.onTabPressed: {
-                    console.log("TAB pressed (in listView)")
+
+                function selectCurrentCompletion() {
                     txtField.text = listView.currentItem.text
                     if (txtField.isLinkValid(listView.currentItem.text)) {
                         console.log("valid linkPath")
@@ -119,11 +120,20 @@ ColumnLayout {
                     }
                 }
 
+                Keys.onTabPressed: {
+                    selectCurrentCompletion()
+                }
+
+                Keys.onRightPressed: {
+                    selectCurrentCompletion()
+                }
+
                 Keys.onDownPressed: {
                     currentIndex++
                     if (currentIndex >= listView.rowCount)
                         currentIndex = listView.rowCount - 1
                 }
+
 
                 delegate: Rectangle {
                     id: delegateId

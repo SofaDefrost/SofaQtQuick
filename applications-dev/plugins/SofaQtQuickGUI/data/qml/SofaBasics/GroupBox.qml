@@ -15,7 +15,13 @@ GroupBox {
     property int expandedHeight: 0
     property url titleIcon
     property string buttonIconSource: ""
+    property string borderColor: "transparent"
+
+
     signal buttonClicked
+    signal labelOnEntered
+    signal labelOnExited
+    signal labelOnDropped
 
     onExpandedChanged: {
         contentItem.visible = expanded
@@ -32,12 +38,9 @@ GroupBox {
     bottomPadding: 0
 
     label: Rectangle {
+        id: lblRect
         anchors.fill: parent
         color: "transparent"
-        MouseArea {
-            anchors.fill: parent
-            onPressed: forceActiveFocus()
-        }
 
         Rectangle {
             y: 0
@@ -85,6 +88,27 @@ GroupBox {
             elide: Text.ElideRight
             anchors.left: titleIconId.right
             anchors.leftMargin: 5
+            MouseArea {
+                width:  label.width
+                height: label.height
+                hoverEnabled: true
+
+
+                DropArea {
+                    id: dropGroupArea
+                    keys: ["text/plain"]
+                    anchors.fill: parent
+                    onEntered: {
+                        groupOnEntered(drag)
+                    }
+                    onExited: {
+                        groupOnExited(drag)
+                    }
+
+                    onDropped: {
+                        groupOnDropped(drag)
+                    }
+                }            }
         }
         Button {
             id: extraButton
@@ -115,15 +139,16 @@ GroupBox {
     }
     background: Rectangle {
         anchors.fill: parent
-
+        border.color: control.borderColor
+        border.width: 1
         color: "transparent"
-        MouseArea {
-            anchors.fill: parent
-            onPressed: {
-                print( "Mouse area pressed in a rectangle.")
-                forceActiveFocus()
-            }
-        }
+//        MouseArea {
+//            anchors.fill: parent
+//            onPressed: {
+//                print( "Mouse area pressed in a rectangle.")
+//                forceActiveFocus()
+//            }
+//        }
 
     }  
 }
