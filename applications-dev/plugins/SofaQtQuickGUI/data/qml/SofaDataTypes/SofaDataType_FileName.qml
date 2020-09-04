@@ -97,7 +97,7 @@ RowLayout {
             anchors.fill: parent
             onDropped: {
                 if (drag.source.asset.path && !textfield.readOnly) {
-                    setDataValue(drag.source.asset.path)
+                    textfield.setDataValue(drag.source.asset.path)
                 }
             }
         }

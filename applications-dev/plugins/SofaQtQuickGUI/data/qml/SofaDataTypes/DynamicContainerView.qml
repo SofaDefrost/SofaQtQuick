@@ -13,19 +13,6 @@ ColumnLayout {
     id: root
     Layout.fillWidth: true
     property SofaData sofaData
-    property var value: 0
-
-    Component.onCompleted: {
-        value = sofaData.value
-    }
-
-    Connections
-    {
-        target: root.sofaData
-        function onValueChanged(value) {
-            root.value=value
-        }
-    }
 
 
     implicitHeight: tableLoader.implicitHeight + showTableLayoutId.implicitHeight
@@ -38,7 +25,9 @@ ColumnLayout {
         spacing: -1
         Text {
             Layout.fillWidth: true
-            text: (root.value.length ? root.value.length : 0) + " Entries"
+            text: {
+                return (sofaData.value.length ? sofaData.value.length.toString() : "0") + " Entries"
+            }
         }
 
         Button {
