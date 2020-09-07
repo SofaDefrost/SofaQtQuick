@@ -3,12 +3,10 @@ import SofaApplication 1.0
 import CustomInspectorWidgets 1.0
 
 CustomInspector {
-
     function refresh() {
         var dataMap = {}
-        for (var idx in component.getDataFields()) {
-            var dataName = component.getDataFields()[idx]
-            var data = component.getData(dataName)
+        for (var dataName of component.getDataFields()) {
+            var data = component.findData(dataName)
             if (data.properties.displayed || dataName === "gravity" || dataName === "bbox") {
                 if (data.properties.readOnly && showAll == false)
                     continue
@@ -24,7 +22,7 @@ CustomInspector {
         }
         dataDict = dataMap
 
-        for (idx in SofaApplication.selectedComponent.getLinks()) {
+        for (var idx in SofaApplication.selectedComponent.getLinks()) {
             var linkName = SofaApplication.selectedComponent.getLinks()[idx]
             linkList.push(linkName)
         }

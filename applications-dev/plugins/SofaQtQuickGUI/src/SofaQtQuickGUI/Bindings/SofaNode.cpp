@@ -429,10 +429,19 @@ void SofaNode::insertObjectAfter(SofaBaseObject* afterObject, SofaBaseObject* ob
     }
 }
 
+void SofaNode::toggleActive(bool activate)
+{
+    this->self()->setActive(activate);
+    for (auto i : self()->child)
+        i->setActive(activate);
+    emit activeChanged(activate);
+}
+
 void SofaNode::insertObject(SofaBaseObject* obj, unsigned int position)
 {
     if (obj->getFirstParent()) {
         BaseNode* p = obj->selfptr()->getContext()->toBaseNode();
+
         SofaNode prev_parent(DAGNode::SPtr(dynamic_cast<DAGNode*>(p)));
         if ((isInAPrefab() && !attemptToBreakPrefab())
                 || (prev_parent.isInAPrefab() && !prev_parent.attemptToBreakPrefab()))

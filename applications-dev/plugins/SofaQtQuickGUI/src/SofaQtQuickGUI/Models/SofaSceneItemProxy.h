@@ -35,7 +35,7 @@ public:
     Q_INVOKABLE void flipComponentVisibility(QModelIndex index);
     Q_INVOKABLE void showOnlyNodes(bool value);
 
-    Q_PROPERTY(QAbstractItemModel* model READ sourceModel WRITE setSourceModel)
+    Q_PROPERTY(QAbstractItemModel* model READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
 
 public:
 
@@ -43,6 +43,7 @@ public:
     {
         connect((SofaSceneItemModel*)model, &SofaSceneItemModel::modelHasReset, this, &SofaSceneItemProxy::modelHasReset);
         QSortFilterProxyModel::setSourceModel(model);
+        emit sourceModelChanged(sourceModel());
     }
 
     SofaSceneItemProxy(QObject* parent = nullptr);
@@ -54,6 +55,7 @@ public:
 
 signals:
     void modelHasReset();
+    void sourceModelChanged(QAbstractItemModel* sourceModel);
 private:
     QHash<QModelIndex, bool> m_filters ;
     bool                     m_showOnlyNodes {false};

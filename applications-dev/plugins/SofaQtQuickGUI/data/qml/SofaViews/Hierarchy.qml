@@ -32,8 +32,6 @@ import SofaApplication 1.0
 import SofaSceneItemModel 1.0
 import SofaSceneItemProxy 1.0
 import SofaWidgets 1.0
-import SofaBasics 1.0
-import SofaColorScheme 1.0
 import Qt.labs.settings 1.0
 import QtGraphicalEffects 1.12
 import QtQuick.Controls 1.4 as QQC1
@@ -42,6 +40,8 @@ import SofaComponent 1.0
 import Sofa.Core.SofaData 1.0
 import Sofa.Core.SofaNode 1.0
 import Sofa.Core.SofaBase 1.0
+import SofaBasics 1.0
+import SofaColorScheme 1.0
 
 Rectangle {
     id: root
@@ -412,7 +412,6 @@ Rectangle {
 
             property string origin: "Hierarchy"
             property bool multiparent : false
-            property bool isDisabled : false
             property var renaming: false
             property string name : model && model.name ? model.name : ""
             property string typename : model && model.typename ? model.typename : ""
@@ -555,7 +554,8 @@ Rectangle {
                 id: textComponent
                 Text {
                     id: rowText
-                    color: styleData.textColor
+
+                    color: model && model.isEnabled ? styleData.textColor : "darkgray"
                     font.italic: hasMultiParent
                     elide: Text.ElideRight
                     clip: true
@@ -724,15 +724,15 @@ Rectangle {
             SofaNodeMenu
             {
                 id: nodeMenu
-                model: basemodel
-                currentModelIndex: sceneModel.mapToSource(styleData.index)
+                model: sceneModel
+                index: styleData.index
             }
 
             SofaObjectMenu
             {
                 id: objectMenu
-                model: basemodel
-                currentModelIndex: sceneModel.mapToSource(styleData.index)
+                model: sceneModel
+                index: styleData.index
             }
 
             Item {
