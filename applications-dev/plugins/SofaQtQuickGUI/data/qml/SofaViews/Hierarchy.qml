@@ -433,7 +433,7 @@ Rectangle {
                     var srcIndex = sceneModel.mapToSource(currentIndex)
                     var treeViewComponent = basemodel.getBaseFromIndex(srcIndex)
 
-                    srcIndex = sceneModel.mapToSource(styleData.index)
+                    srcIndex = sceneModel.mapToSource(itemDelegateID.index)
                     var component = basemodel.getBaseFromIndex(srcIndex)
 
                     if (!component || !treeViewComponent) return;
@@ -902,7 +902,8 @@ Rectangle {
                         if (newParent.objects().last().getPathName() === dest.getPathName()) {
                             newParent.insertChild(src, 0)
                         } else
-                            dropNodeIntoNode(src, newParent)
+//                            dropNodeIntoNode(src, newParent)
+                            return // can't insert node between components: nodes and components don't mix
                         var baseIndex = basemodel.getIndexFromBase(newParent)
                         var idx = sceneModel.mapFromSource(baseIndex)
                         if (treeView.isExpanded(idx)) {
@@ -940,7 +941,8 @@ Rectangle {
                         if (treeView.isExpanded(idx))
                             dest.insertObject(src, 0)
                         else
-                            dest.getFirstParent().moveObject(src)
+//                            dest.getFirstParent().moveObject(src)
+                            return // can't insert an object after a node: nodes and objects don't mix
 
                         baseIndex = basemodel.getIndexFromBase(dest)
                         idx = sceneModel.mapFromSource(baseIndex)
