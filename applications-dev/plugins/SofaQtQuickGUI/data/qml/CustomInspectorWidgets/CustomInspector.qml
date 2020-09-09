@@ -188,6 +188,8 @@ ColumnLayout {
                                     : "qrc:/SofaDataTypes/SofaDataType_" + sofaDataLayout.sofaData.properties.type + ".qml"
                             onLoaded: {
                                 item.sofaData = Qt.binding(function(){return sofaDataLayout.sofaData})
+                                if (sofaDataLayout.sofaData.properties.type === "Material")
+                                    item.expanded = false
                             }
                             DropArea {
                                 id: dropArea2
