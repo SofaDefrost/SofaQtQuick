@@ -28,19 +28,29 @@ Menu {
 
     id: objectMenu
 
-    property var model: null;     ///< The model from which we can get the objects.
-    property var currentModelIndex;    ///< The index in the model.
-    property var currentObject: model.getBaseFromIndex(currentModelIndex) ;
+    property var model: null;
+    property var index;
     property SofaData name: null
     property var sourceLocation : null
     property var creationLocation : null
+
+    function getComponent() {
+        return model.model.getBaseFromIndex(model.mapToSource(index))
+    }
+
+    function getParentComponent() {
+        return model.model.getBaseFromIndex(model.mapToSource(index).parent)
+    }
+    onVisibleChanged: {
+        SofaApplication.selectedComponent = getComponent()
+    }
 
     MenuItem {
         enabled: true
         text: "Show connections.."
         onTriggered:
         {
-            var node = model.getBaseFromIndex(currentModelIndex)
+            var node = getComponent()
             GraphView.showConnectedComponents(node)
             GraphView.open()
         }
@@ -67,12 +77,12 @@ Menu {
 
 
     MenuItem {
-        enabled: currentObject && currentObject.hasMessage()
+        enabled: getComponent() && getComponent().hasMessage()
         text: "Show messages..."
         onTriggered: {
             /// Creates and display an help window object
             windowMessage.createObject(nodeMenu.parent,
-                                       {"sofaComponent": model.getBaseFromIndex(currentModelIndex)});
+                                       {"sofaComponent": getComponent()});
         }
     }
 
@@ -93,7 +103,7 @@ Menu {
                 "CGLinearSolver" : "https://www.sofa-framework.org/community/doc/using-sofa/components/linearsolver/cglinearsolver/",
                 "SparseLDLSolver" : "https://www.sofa-framework.org/community/doc/using-sofa/components/linearsolver/sparseldlsolver/"
             }
-            var base = model.getBaseFromIndex(currentModelIndex)
+            var base = getComponent()
             var className = base.getClassName()
             var url = 'https://sofacomponents.readthedocs.io/en/latest/search.html?q='+className+'&check_keywords=yes&area=default'
             if( className in dirtyHack )
@@ -141,8 +151,8 @@ Menu {
             "Delete object"
         }
         onTriggered: {
-            var parent = model.getBaseFromIndex(currentModelIndex.parent);
-            var item = model.getBaseFromIndex(currentModelIndex);
+            var parent = getParentComponent();
+            var item = getComponent();
             parent.removeObject(item);
         }
     }
@@ -150,7 +160,7 @@ Menu {
     MenuItem {
         text: "Add node..."
         onTriggered: {
-            var p = model.getBaseFromIndex(currentModelIndex).getFirstParent()
+            var p = getComponent().getFirstParent()
             var childName = p.getNextName("NEWNODE")
             var created = p.addChild(childName)
             if(created){
@@ -166,9 +176,9 @@ Menu {
         onTriggered: {
             var popupComponent = Qt.createComponent("qrc:/SofaWidgets/PopupWindowCreateComponent.qml")
             var popup2 =
-                    popupComponent.createObject(nodeMenu.parent,
+                    popupComponent.createObject(objectMenu.parent,
                                                 {
-                                                    "sofaNode": model.getBaseFromIndex(currentModelIndex).getFirstParent(),
+                                                    "sofaNode": getComponent().getFirstParent(),
                                                     "x" : mouseLoc.mouseX,
                                                     "y" : mouseLoc.mouseY
                                                 });

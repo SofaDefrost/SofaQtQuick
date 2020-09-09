@@ -14,6 +14,10 @@ import Sofa.Core.SofaData 1.0
 Menu {
     id: nodeMenu
 
+    onVisibleChanged: {
+        SofaApplication.selectedComponent = getComponent()
+    }
+
     function parsePython(c)
     {
         c=c.replace("(","[")
@@ -23,9 +27,15 @@ Menu {
         return JSON.parse(c)
     }
 
-    property var model: null;     ///< The model from which we can get the objects.
-    property var currentModelIndex: null;    ///< The index in the model.
-    property var currentObject: model.getBaseFromIndex(currentModelIndex) ;
+    function getComponent() {
+        return model.model.getBaseFromIndex(model.mapToSource(index))
+    }
+    function getParentComponent() {
+        return model.model.getBaseFromIndex(model.mapToSource(index).parent)
+    }
+
+    property var model
+    property var index
 
     property bool nodeActivated: true
     property SofaData activated: null
@@ -46,7 +56,7 @@ Menu {
         onTriggered: {
             sofaDataListViewWindowComponent.createObject(nodeMenu.parent,
                                                          {"sofaScene": root.sofaScene,
-                                                          "sofaComponent": model.getBaseFromIndex(currentModelIndex)});
+                                                          "sofaComponent": getComponent()});
         }
     }
 
@@ -55,7 +65,7 @@ Menu {
         text: "Inspect connections.."
         onTriggered:
         {
-            GraphView.showConnectedComponents(model.getBaseFromIndex(currentModelIndex))
+            GraphView.showConnectedComponents(getComponent())
             GraphView.open()
         }
     }
@@ -65,19 +75,19 @@ Menu {
         text: "Show local connections.."
         onTriggered:
         {
-            GraphView.rootNode = model.getBaseFromIndex(currentModelIndex)
+            GraphView.rootNode = getComponent()
             GraphView.open()
         }
     }
 
 
     MenuItem {
-        enabled: currentObject && currentObject.hasMessage()
+        enabled: getComponent() && getComponent().hasMessage()
         text: "Show messages..."
         onTriggered: {
             /// Creates and display an help window object
             windowMessage.createObject(nodeMenu.parent,
-                                       {"sofaComponent": model.getBaseFromIndex(currentModelIndex)});
+                                       {"sofaComponent": getComponent()});
         }
     }
 
@@ -112,17 +122,27 @@ Menu {
 
     MenuSeparator {}
     MenuItem {
-        enabled: true //(multiparent)?irstparent : true
+        enabled: getComponent() && getComponent().getFirstParent() ? true : false
         text: nodeMenu.nodeActivated ? "Deactivate" : "Activate"
-        onTriggered: parent.activated.setValue(nodeMenu.nodeActivated);
+        onTriggered: {
+            SofaApplication.selectedComponent = getComponent()
+
+            getComponent().toggleActive(!nodeMenu.nodeActivated)
+            if (!nodeMenu.nodeActivated == false)
+                treeView.collapse(index)
+            else
+                treeView.expand(index)
+            model.model.sofaScene = null
+            model.model.sofaScene = SofaApplication.sofaScene
+        }
     }
 
     MenuSeparator {}
     MenuItem {
         text: "Delete"
         onTriggered: {
-            var parent = model.getBaseFromIndex(currentModelIndex.parent);
-            var item = model.getBaseFromIndex(currentModelIndex);
+            var parent = getParentComponent();
+            var item = getComponent();
             parent.removeChild(item);
         }
     }
@@ -135,7 +155,7 @@ Menu {
     MenuItem {
         text: "Add child"
         onTriggered: {
-            var p = model.getBaseFromIndex(currentModelIndex)
+            var p = getComponent()
             var childName = p.getNextName("NEWNODE")
             var created = p.addChild(childName)
             if(created){
@@ -147,7 +167,7 @@ Menu {
     MenuItem {
         text: "Add sibling"
         onTriggered: {
-            var p = model.getBaseFromIndex(currentModelIndex).getFirstParent()
+            var p = getComponent().getFirstParent()
             var childName = p.getNextName("NEWNODE")
             var created = p.addChild(childName)
             if(created) {
@@ -162,7 +182,7 @@ Menu {
         onTriggered: {
             var popupComponent = SofaDataWidgetFactory.getWidget("qrc:/SofaWidgets/PopupWindowCreateComponent.qml")
             var popup2 = popupComponent.createObject(nodeMenu.parent, {
-                                                         "sofaNode": model.getBaseFromIndex(currentModelIndex),
+                                                         "sofaNode": getComponent(),
                                                          "x" : mouseLoc.mouseX,
                                                          "y" : mouseLoc.mouseY
                                                      });
@@ -184,7 +204,7 @@ Menu {
     MenuItem {
         text: "Save as Prefab..."
         onTriggered: {
-            var n = model.getBaseFromIndex(currentModelIndex)
+            var n = getComponent()
             SofaApplication.currentProject.createPrefab(n);
         }
     }
