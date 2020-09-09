@@ -299,6 +299,17 @@ class GraphSerializer:
                 # Deal with components having a dependency to upstream-located or sibling-located components
                 self.try_create_dependent_item(fd, c, created, not_created)
 
+
+        hasAPIVersion = False
+        for o in self.node.objects:
+            if o.getClassName() == "APIVersion":
+                hasAPIVersion = True
+                break;
+
+        if not hasAPIVersion:
+            self.node.createObject('APIVersion') # creates an APIVersion with SOFA version used in executable
+            self.node.APIVersion.level.setPersistent(True)
+
         r_createGraph(self.node)
 
 
