@@ -11,6 +11,16 @@ ColumnLayout {
     property var sofaData
     property string parentLinkPath : sofaData.parent !== null ? sofaData.getParent().linkPath : ""
 
+    function setCompletion(path)
+    {
+        txtField.text = path
+        txtField.isLinkValid(path)
+        if (listView.currentIndex >= completionModel.rowCount())
+            listView.currentIndex = 0
+        completionModel.linkPath = path
+        txtField.forceActiveFocus()
+    }
+
     Layout.fillWidth: true
     Layout.fillHeight: true
     spacing: 0
@@ -37,12 +47,20 @@ ColumnLayout {
             Keys.forwardTo: [listView.currentItem, listView]
 
             onEditingFinished: {
-                if (!listView.currentItem && sofaData.tryLinkingIncompatibleTypes(txtField.text)) {
+                if (!listView.currentItem) {
+                    if (!isLinkValid(txtField.text) && txtField.text !== "") {
+                        txtField.text = ""
+                        breakLinkButton.clicked()
+                    }
                     txtField.borderColor = "#393939"
                     focus = false
-                    return;
+                    return
                 }
 
+                if (listView.currentItem.text.endsWith(' (convert)')) {
+                    sofaData.tryLinkingIncompatibleTypes(listView.currentItem.text.split(' ')[0])
+                    return;
+                }
                 txtField.text = listView.currentItem.text
                 setLinkIfValid(listView.currentItem.text)
 
@@ -73,8 +91,7 @@ ColumnLayout {
 
             function setLinkIfValid(value) {
                 if (isLinkValid(value)) {
-                    sofaData.setLink(value)
-                    return true
+                    return sofaData.setLink(value)
                 }
                 return false
             }
@@ -83,101 +100,113 @@ ColumnLayout {
         Popup {
             id: popup
             closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-            visible: txtField.activeFocus
+            visible: txtField.activeFocus && completionModel.rowCount()
             padding: 0
             margins: 0
             implicitWidth: txtField.width
-            implicitHeight: contentHeight
+            implicitHeight: 150
             contentWidth: txtField.width - padding
             contentHeight: listView.implicitHeight < 20 ? 20 : listView.implicitHeight
             y: 20
-
-            ListView {
-                id: listView
-                visible: txtField.activeFocus
+            ScrollView {
                 anchors.fill: parent
-                currentIndex: 0
-                keyNavigationEnabled: true
-                model: SofaLinkCompletionModel {
-                    id: completionModel
-                    sofaData: control.sofaData
-                    isComponent: false
-                    onModelReset: {
-                        listView.implicitHeight = completionModel.rowCount() * 20
-                        parent.contentHeight = completionModel.rowCount() * 20
-                        parent.height = parent.contentHeight
-                    }
-                }
 
-                function selectCurrentCompletion() {
-                    txtField.text = listView.currentItem.text
-                    if (txtField.isLinkValid(listView.currentItem.text)) {
-                        console.log("valid linkPath")
-                    } else {
-                        console.log("invalid linkPath")
-                        completionModel.linkPath = txtField.text
-                        listView.currentIndex = 0;
+                ListView {
+                    id: listView
+                    visible: txtField.activeFocus
+                    anchors.fill: parent
+                    currentIndex: 0
+                    keyNavigationEnabled: true
+                    model: SofaLinkCompletionModel {
+                        id: completionModel
+                        sofaData: control.sofaData
+                        isComponent: false
+                        onModelReset: {
+                            listView.implicitHeight = completionModel.rowCount() * 20
+                            parent.contentHeight = completionModel.rowCount() * 20
+                            parent.height = parent.contentHeight
+                        }
                     }
-                }
 
-                Keys.onTabPressed: {
-                    selectCurrentCompletion()
-                }
-
-                Keys.onRightPressed: {
-                    selectCurrentCompletion()
-                }
-
-                Keys.onDownPressed: {
-                    currentIndex++
-                    if (currentIndex >= listView.rowCount)
-                        currentIndex = listView.rowCount - 1
-                }
-
-
-                delegate: Rectangle {
-                    id: delegateId
-                    property Gradient highlightcolor: Gradient {
-                        GradientStop { position: 0.0; color: "#7aa3e5" }
-                        GradientStop { position: 1.0; color: "#5680c1" }
+                    function selectCurrentCompletion() {
+                        txtField.text = listView.currentItem.text
+                        if (txtField.isLinkValid(listView.currentItem.text)) {
+                            console.log("valid linkPath")
+                        } else {
+                            console.log("invalid linkPath")
+                            completionModel.linkPath = txtField.text
+                            listView.currentIndex = 0;
+                        }
                     }
-                    property Gradient nocolor: Gradient {
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 1.0; color: "transparent" }
+
+                    Keys.onTabPressed: {
+                        selectCurrentCompletion()
                     }
-                    property var view: listView
-                    property alias text: entryText.text
-                    width: popup.contentWidth
-                    height: 20
-                    gradient: view.currentIndex === index ? highlightcolor : nocolor
-                    Text {
-                        id: entryText
-                        color: view.currentIndex === index ? "black" : itemMouseArea.containsMouse ? "lightgrey" : "white"
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: popup.contentWidth - x * 2
-                        x: 10
-                        text: "@" + completionModel.linkPath + completion
-                        elide: Qt.ElideLeft
-                        clip: true
+
+                    Keys.onRightPressed: {
+                        selectCurrentCompletion()
                     }
-                    ToolTip {
-                        text: name
-                        description: help
-                        visible: itemMouseArea.containsMouse
-                        timeout: 2000
+
+                    Keys.onDownPressed: {
+                        currentIndex++
+                        if (currentIndex >= listView.rowCount)
+                            currentIndex = listView.rowCount - 1
                     }
-                    MouseArea {
-                        id: itemMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: {
-                            view.currentIndex = index
-                            txtField.forceActiveFocus()
-                            txtField.text = "@"+entryText.text
+
+
+                    delegate: Rectangle {
+                        id: delegateId
+                        property Gradient highlightcolor: Gradient {
+                            GradientStop { position: 0.0; color: "#7aa3e5" }
+                            GradientStop { position: 1.0; color: "#5680c1" }
+                        }
+                        property Gradient nocolor: Gradient {
+                            GradientStop { position: 0.0; color: "transparent" }
+                            GradientStop { position: 1.0; color: "transparent" }
+                        }
+                        property var view: listView
+                        property alias text: entryText.text
+                        width: popup.contentWidth
+                        height: 20
+                        gradient: view.currentIndex === index ? highlightcolor : nocolor
+                        Text {
+                            id: entryText
+                            color: view.currentIndex === index ? "black" : itemMouseArea.containsMouse ? "lightgrey" : !canLink ? "gray" : "white"
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: popup.contentWidth - x * 2
+                            x: 10
+                            text: {
+                                var itemPath = "@" + completionModel.linkPath + completion
+                                if (canLink)
+                                    return itemPath
+                                else return itemPath + " (convert)"
+                            }
+                            elide: Qt.ElideLeft
+                            clip: true
+                            font.strikeout: !canLink
+                        }
+                        ToolTip {
+                            text: name
+                            description: {
+                                if (!canLink)
+                                    return help + "\nRequires a Type conversion engine"
+                                return help
+                            }
+                            visible: itemMouseArea.containsMouse
+                            timeout: 2000
+                        }
+                        MouseArea {
+                            id: itemMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                view.currentIndex = index
+                                txtField.forceActiveFocus()
+                                txtField.text = "@"+entryText.text
+                            }
                         }
                     }
                 }
-
             }
         }
         Button {

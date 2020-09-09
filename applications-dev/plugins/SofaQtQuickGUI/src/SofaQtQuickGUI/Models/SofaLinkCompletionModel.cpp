@@ -122,6 +122,7 @@ void SofaLinkCompletionModel::updateModel()
     m_modelText.clear();
     m_modelName.clear();
     m_modelHelp.clear();
+    m_modelCanLink.clear();
 
     if (!lastValid) {
         endResetModel();
@@ -136,6 +137,7 @@ void SofaLinkCompletionModel::updateModel()
             m_modelText.push_back(lastValidLinkPath+QString::fromStdString(path_separator+child->getName()));
             m_modelName.push_back(QString::fromStdString(child->getName()));
             m_modelHelp.push_back(QString::fromStdString(child->getTypeName()));
+            m_modelCanLink.push_back(true);
         }
         sofa::simulation::graph::DAGNode* n = static_cast<sofa::simulation::graph::DAGNode*>(node);
         for (auto object : n->object)
@@ -145,11 +147,14 @@ void SofaLinkCompletionModel::updateModel()
             m_modelHelp.push_back(QString::fromStdString(
                                       sofa::core::ObjectFactory::getInstance()
                                       ->getEntry(object->getClassName()).description));
+            m_modelCanLink.push_back(true);
         }
     }
 
     if (!m_isComponent)
     {
+        QStringList modelText, modelName, modelHelp;
+        QList<bool> modelCanLink;
         for (auto data : lastValid->getDataFields())
         {
             if (data->getValueTypeString() == sofaData()->rawData()->getValueTypeString())
@@ -157,11 +162,24 @@ void SofaLinkCompletionModel::updateModel()
                 m_modelText.push_back(lastValidLinkPath+QString::fromStdString(data_separator+data->getName()));
                 m_modelName.push_back(QString::fromStdString(data->getName()));
                 m_modelHelp.push_back(QString::fromStdString(data->getHelp()));
+                m_modelCanLink.push_back(true);
+            }
+            else
+            {
+                modelText.push_back(lastValidLinkPath+QString::fromStdString(data_separator+data->getName()));
+                modelName.push_back(QString::fromStdString(data->getName()));
+                modelHelp.push_back(QString::fromStdString(data->getHelp()));
+                modelCanLink.push_back(false);
             }
         }
+        m_modelText += modelText;
+        m_modelName+= modelName;
+        m_modelHelp += modelHelp;
+        m_modelCanLink += modelCanLink;
     }
     m_modelText.erase(std::remove_if(m_modelText.begin(), m_modelText.end(),
                      [this](const QString &s) { return !s.contains(m_linkPath); }), m_modelText.end());
+
     endResetModel();
 }
 
@@ -188,6 +206,8 @@ QVariant SofaLinkCompletionModel::data(const QModelIndex &index, int role) const
     case HelpRole:
         v = m_modelHelp[index.row()];
         break;
+    case CanLinkRole:
+        return QVariant::fromValue(m_modelCanLink[index.row()]);
     default:
         break;
     }
@@ -199,6 +219,7 @@ QHash<int, QByteArray> SofaLinkCompletionModel::roleNames() const {
     roles[CompletionRole] = "completion";
     roles[NameRole] = "name";
     roles[HelpRole] = "help";
+    roles[CanLinkRole] = "canLink";
     return roles;
 }
 
