@@ -447,7 +447,35 @@ QVariantMap& convertDataInfoToProperties(const BaseData* data, QVariantMap& prop
 
     /// Default type...
     properties.insert("type","array");
-    return properties;
+
+
+    if(typeinfo->Integer())
+    {
+        if(std::string::npos != typeinfo->BaseType()->name().find("bool"))
+        {
+            properties.insert("subtype", "boolean");
+            return properties;
+        }
+
+        properties.insert("subtype", "number");
+        properties.insert("decimals", 0);
+        if(std::string::npos != typeinfo->name().find("unsigned"))
+            properties.insert("min", 0);
+        return properties;
+    }
+    if(typeinfo->Scalar())
+    {
+        properties.insert("subtype", "number");
+        properties.insert("step", 0.1);
+        properties.insert("precision", 6);
+        return properties;
+    }
+
+    if(typeinfo->Text())
+    {
+        properties.insert("subtype", "string");
+        return properties;
+    }
 }
 
 
