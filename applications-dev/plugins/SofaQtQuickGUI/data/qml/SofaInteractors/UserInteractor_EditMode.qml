@@ -170,7 +170,11 @@ UserInteractor {
                 if(selectable && selectable.sofaComponent) {
                     model.sofaData = SofaApplication.selectedComponent.findData("position")
                     var p = selectable.position
-                    model.insertRow([p.x, p.y, p.z])
+                    console.log(model.sofaData.properties.cols)
+                    if (model.sofaData.properties.cols === 3)
+                        model.insertRow([p.x, p.y, p.z])
+                    if (model.sofaData.properties.cols === 7)
+                        model.insertRow([p.x, p.y, p.z, 0, 0, 0, 1])
                     SofaApplication.selectedComponent.init()
                     SofaApplication.selectedComponent.reinit()
                     SofaApplication.selectedComponent.findData("showObject").value = 1
