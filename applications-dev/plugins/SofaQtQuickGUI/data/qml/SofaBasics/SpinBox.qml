@@ -219,6 +219,8 @@ Rectangle {
 
                     onPressed:
                     {
+                        console.log("PRESSED")
+
                         initialValue = control.value
                         initialPosition = Qt.vector2d(mouseX, mouseY)
                         // Ugly, but works: removes the activeFocus from potential other activeFocused spinBoxes
@@ -231,11 +233,13 @@ Rectangle {
                     {
                         if (!pressed)
                             return
+                        console.log("POSITION CHANGED")
                         var currentPosition = Qt.vector2d(mouseX, mouseY)
                         incValue(initialValue, (currentPosition.x - initialPosition.x) * step)
                     }
 
                     onReleased: {
+                        console.log("RELEASED")
                         var currentPosition = Qt.vector2d(mouseX, mouseY)
                         if (currentPosition.x - initialPosition.x === 0)
                             isEditing = true
@@ -268,8 +272,8 @@ Rectangle {
                     if (v < from)
                         v = from
                     value=v
-                    valueEditted(v)
                     isEditing = false
+                    valueEditted(v)
                 }
 
                 Component.onCompleted: {

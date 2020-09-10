@@ -25,61 +25,65 @@ import SofaBasics 1.0
 GroupBox {
     id: root
 
-    title: name
+    title: "Default"
     Layout.fillWidth: true
     Layout.minimumHeight: implicitHeight
+
     property var sofaData: null
+    onSofaDataChanged: {
+        values = sofaData.value.split(" ")
+    }
+    Connections {
+        target: sofaData
+        function onValueChanged(val) {
+            // Breaks binding loop
+            if (val === root.values.join(' ') || val === undefined)
+                return;
+            console.log("onValueChanged: "+val)
+            root.values = val.split(" ")
 
-    property string text: undefined !== sofaData.value ? sofaData.value.toString() : ""
+        }
+    }
+    property var values
+    property bool updating: false
+    onValuesChanged: {
+        console.log("onValuesChanged: " + values.length)
+        if (values.length < 27) return
+        updating = true
+        console.log("updating fields: " + values.join(' '))
+        name_tf.text = root.title = values[0]
+        diffuse_cbx.checked = values[2] === "0" ? false : true
+        console.log("setting useDiffuse to " + values[2])
+        diffuse_repeater.model = [values[3], values[4], values[5], values[6]]
 
-    onTextChanged: {
-        var list = text.split(" ")
-        console.log(text)
-        name = list[0]
-        useDiffuse = list[2]
-        diffuse = [list[3], list[4], list[5], list[6]]
+        ambient_cbx.checked = values[8] === "0" ? false : true
+        ambient_repeater.model = [values[9], values[10], values[11], values[12]]
 
-        useAmbient = list[8]
-        ambient = [list[9], list[10], list[11], list[12]]
+        specular_cbx.checked = values[14] === "0" ? false : true
+        specular_repeater.model = [values[15], values[16], values[17], values[18]]
 
-        useSpecular = list[14]
-        specular = [list[15], list[16], list[17], list[18]]
+        emissive_cbx.checked = values[20] === "0" ? false : true
+        emissive_repeater.model = [values[21], values[22], values[23], values[24]]
 
-        useEmissive = list[20]
-        emissive = [list[21], list[22], list[23], list[24]]
-
-        useShininess = list[26]
-        shininess = list[27]
+        shininess_cbx.checked = values[26] === "0" ? false : true
+        shininess_sb.value = values[27]
+        updating = false
     }
 
-    Binding {
-        target: root.sofaData
-        property: "value"
-        value: root.text
-        when: !sofaData.isReadOnly
-    }
-
-    property string name
-    property string useDiffuse
-    property string useAmbient
-    property string useSpecular
-    property string useEmissive
-    property string useShininess
-
-    property var diffuse
-    property var ambient
-    property var specular
-    property var emissive
-    property var shininess
-
+    property var diffuse_model
+    property var ambient_model
+    property var specular_model
+    property var emissive_model
 
     function setSofaValue() {
-        var newValue = name
-                + " Diffuse " + useDiffuse + " " + root.diffuse.join(' ')
-                + " Ambient " + useAmbient + " " + root.ambient.join(' ')
-                + " Specular " + useSpecular + " " + root.specular.join(' ')
-                + " Emissive " + useEmissive + " " + root.emissive.join(' ')
-                + " Shininess " + useShininess + " " + root.shininess
+        if (!sofaData || updating) return
+        var newValue = name_tf.text
+                + " Diffuse " + (diffuse_cbx.checked ? 1 : 0) + " " + diffuse_model.join(' ')
+                + " Ambient " + (ambient_cbx.checked ? 1 : 0) + " " + ambient_model.join(' ')
+                + " Specular " + (specular_cbx.checked ? 1 : 0) + " " + specular_model.join(' ')
+                + " Emissive " + (emissive_cbx.checked ? 1 : 0) + " " + emissive_model.join(' ')
+                + " Shininess " + (shininess_cbx.checked ? 1 : 0) + " " + shininess_sb.value
+        console.log("Setting new value: " + newValue)
         sofaData.setValue(newValue)
     }
 
@@ -96,25 +100,22 @@ GroupBox {
                 Layout.preferredWidth: 55
             }
             TextField {
+                id: name_tf
                 Layout.fillWidth: true
-                text: root.name
                 onEditingFinished: {
-                    root.name = text
-                    setValue()
+                    setSofaValue()
                 }
             }
         }
         RowLayout {
-            id: diffuseLayout
             Layout.fillWidth: true
             Label {
                 text: "diffuse: "
                 Layout.preferredWidth: 55
             }
             CheckBox {
-                checked: root.useDiffuse
+                id: diffuse_cbx
                 onCheckedChanged: {
-                    root.useDiffuse = checked
                     setSofaValue()
                 }
 
@@ -124,13 +125,17 @@ GroupBox {
                 Layout.fillWidth: true
                 spacing: 0
                 Repeater {
-                    model: root.diffuse
+                    id: diffuse_repeater
+                    model: [0,0,0,0]
                     delegate: SpinBox {
                         Layout.fillWidth: true
-                        value: root.diffuse[index]
+                        value: modelData
                         position: cornerPositions[index === 0 ? "Left" : index === 3 ? "Right" : "Middle"]
+                        from: 0
+                        to: 1
                         onValueChanged: {
-                            root.diffuse[index] = value
+                            diffuse_model = diffuse_repeater.model
+                            diffuse_model[index] = value
                             setSofaValue()
                         }
                     }
@@ -146,9 +151,8 @@ GroupBox {
                 Layout.preferredWidth: 55
             }
             CheckBox {
-                checked: root.useAmbient
+                id: ambient_cbx
                 onCheckedChanged: {
-                    root.useAmbient = checked
                     setSofaValue()
                 }
             }
@@ -157,13 +161,17 @@ GroupBox {
                 Layout.fillWidth: true
                 spacing: 0
                 Repeater {
-                    model: root.ambient
+                    id: ambient_repeater
+                    model: [0,0,0,0]
                     delegate: SpinBox {
                         Layout.fillWidth: true
-                        value: root.ambient[index]
+                        value: modelData
                         position: cornerPositions[index === 0 ? "Left" : index === 3 ? "Right" : "Middle"]
+                        from: 0
+                        to: 1
                         onValueChanged:  {
-                            root.ambient[index] = value
+                            ambient_model = ambient_repeater.model
+                            ambient_model[index] = value
                             setSofaValue()
                         }
                     }
@@ -179,9 +187,8 @@ GroupBox {
                 Layout.preferredWidth: 55
             }
             CheckBox {
-                checked: root.useSpecular
+                id: specular_cbx
                 onCheckedChanged:  {
-                    root.useSpecular = checked
                     setSofaValue()
                 }
             }
@@ -190,13 +197,17 @@ GroupBox {
                 Layout.fillWidth: true
                 spacing: 0
                 Repeater {
-                    model: root.specular
+                    id: specular_repeater
+                    model: [0,0,0,0]
                     delegate: SpinBox {
                         Layout.fillWidth: true
-                        value: root.specular[index]
+                        value: modelData
                         position: cornerPositions[index === 0 ? "Left" : index === 3 ? "Right" : "Middle"]
+                        from: 0
+                        to: 1
                         onValueChanged:  {
-                            root.specular[index] = value
+                            specular_model = specular_repeater.model
+                            specular_model[index] = value
                             setSofaValue()
                         }
                     }
@@ -212,9 +223,8 @@ GroupBox {
                 Layout.preferredWidth: 55
             }
             CheckBox {
-                checked: root.useEmissive
+                id: emissive_cbx
                 onCheckedChanged:  {
-                    root.useEmissive = checked
                     setSofaValue()
                 }
             }
@@ -223,13 +233,17 @@ GroupBox {
                 Layout.fillWidth: true
                 spacing: 0
                 Repeater {
-                    model: root.emissive
+                    id: emissive_repeater
+                    model: [0,0,0,0]
                     delegate: SpinBox {
                         Layout.fillWidth: true
-                        value: root.emissive[index]
+                        value: modelData
                         position: cornerPositions[index === 0 ? "Left" : index === 3 ? "Right" : "Middle"]
+                        from: 0
+                        to: 1
                         onValueChanged:  {
-                            root.emissive[index] = value
+                            emissive_model = emissive_repeater.model
+                            emissive_model[index] = value
                             setSofaValue()
                         }
                     }
@@ -244,17 +258,18 @@ GroupBox {
                 Layout.preferredWidth: 55
             }
             CheckBox {
-                checked: root.useShininess
+                id: shininess_cbx
                 onCheckedChanged:  {
-                    root.useShininess = checked
                     setSofaValue()
                 }
             }
             SpinBox {
+                id: shininess_sb
                 Layout.fillWidth: true
-                value: root.shininess
+                from: 0
+                to: 128
+
                 onValueChanged:  {
-                    root.shininess = value
                     setSofaValue()
                 }
             }
