@@ -67,8 +67,6 @@ QVariant QVariantFromDataFileName(const BaseData* data)
 
 QVariant QVariantFromMaterial(const BaseData* data)
 {
-    if (data->getName() == "material")
-        std::cout << "QVariantfromMaterial" << std::endl;
     auto material = dynamic_cast<const Data<Material>*>(data);
     if (material)
     {
@@ -106,12 +104,8 @@ QVariant QVariantFromMaterial(const BaseData* data)
         map.insert("useShininess", QVariant::fromValue(m.useShininess));
         map.insert("shininess", QVariant::fromValue(m.shininess));
         map.insert("activated", QVariant::fromValue(m.activated));
-        if (data->getName() == "material")
-            std::cout << data->getName() << " is of type Material" << std::endl;
         return QVariant::fromValue(map);
     }
-    if (data->getName() == "material")
-        std::cout << data->getName() << " is NOT A Material" << std::endl;
     return QVariant();
 }
 
@@ -122,8 +116,6 @@ QVariant createQVariantFromData(const BaseData* data)
     if(!data)
         return value;
 
-    if (data->getName() == "material")
-        std::cout << "PLOP" << std::endl;
     // Specialized conversions
     if ((value = QVariantFromDataFileName(data)).isValid()) return value;
     if ((value = QVariantFromMaterial(data)).isValid()) return value;

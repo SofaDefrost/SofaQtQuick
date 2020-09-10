@@ -41,8 +41,6 @@ GroupBox {
             // Breaks binding loop
             if (value === undefined)
                 return;
-            console.log("onValueChanged: " + value)
-            console.log("valuesChanged: " + value)
             updating = true
             name_tf.text = root.title = value["name"]
 
@@ -86,7 +84,6 @@ GroupBox {
                 + " Specular "  + (specular_cbx.checked ? 1 : 0)  + " " + specular_r.value + ' ' + specular_g.value + ' ' + specular_b.value + ' ' + specular_a.value
                 + " Emissive "  + (emissive_cbx.checked ? 1 : 0)  + " " + emissive_r.value + ' ' + emissive_g.value + ' ' + emissive_b.value + ' ' + emissive_a.value
                 + " Shininess " + (shininess_cbx.checked ? 1 : 0) + " " + shininess_sb.value
-        console.log("Setting new value: " + newValue)
         sofaData.setValue(newValue)
     }
 

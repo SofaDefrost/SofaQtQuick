@@ -218,6 +218,9 @@ set(INSPECTOR_TEMPLATES
     data/config/templates/inspectors/MeshSTLLoader.qml
     )
 
+  set(CONVERSION_TEMPLATES
+    data/config/templates/callbacks/BoundingBox2vector_Vec6d_.py
+
 set(CONFIG_TEMPLATES
     data/config/default.ini
     data/config/classic.ini
