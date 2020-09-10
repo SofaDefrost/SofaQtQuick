@@ -31,64 +31,67 @@ GroupBox {
 
     property var sofaData: null
     onSofaDataChanged: {
-        values = sofaData.value.split(" ")
+        dataValueConnection.onValueChanged(sofaData.value)
     }
+
     Connections {
+        id: dataValueConnection
         target: sofaData
-        function onValueChanged(val) {
+        function onValueChanged(value) {
             // Breaks binding loop
-            if (val === root.values.join(' ') || val === undefined)
+            if (value === undefined)
                 return;
-            console.log("onValueChanged: "+val)
-            root.values = val.split(" ")
+            console.log("onValueChanged: " + value)
+            console.log("valuesChanged: " + value)
+            updating = true
+            name_tf.text = root.title = value["name"]
+
+            diffuse_cbx.checked = value["useDiffuse"]
+            diffuse_r.value = value["diffuse"][0]
+            diffuse_g.value = value["diffuse"][1]
+            diffuse_b.value = value["diffuse"][2]
+            diffuse_a.value = value["diffuse"][3]
+
+            ambient_cbx.checked = value["useAmbient"]
+            ambient_r.value = value["ambient"][0]
+            ambient_g.value = value["ambient"][1]
+            ambient_b.value = value["ambient"][2]
+            ambient_a.value = value["ambient"][3]
+
+            specular_cbx.checked = value["useSpecular"]
+            specular_r.value = value["specular"][0]
+            specular_g.value = value["specular"][1]
+            specular_b.value = value["specular"][2]
+            specular_a.value = value["specular"][3]
+
+            emissive_cbx.checked = value["useEmissive"]
+            emissive_r.value = value["emissive"][0]
+            emissive_g.value = value["emissive"][1]
+            emissive_b.value = value["emissive"][2]
+            emissive_a.value = value["emissive"][3]
+
+            shininess_cbx.checked = value["useShininess"]
+            shininess_sb.value = value["shininess"]
+            updating = false
 
         }
     }
-    property var values
     property bool updating: false
-    onValuesChanged: {
-        console.log("onValuesChanged: " + values.length)
-        if (values.length < 27) return
-        updating = true
-        console.log("updating fields: " + values.join(' '))
-        name_tf.text = root.title = values[0]
-        diffuse_cbx.checked = values[2] === "0" ? false : true
-        console.log("setting useDiffuse to " + values[2])
-        diffuse_repeater.model = [values[3], values[4], values[5], values[6]]
-
-        ambient_cbx.checked = values[8] === "0" ? false : true
-        ambient_repeater.model = [values[9], values[10], values[11], values[12]]
-
-        specular_cbx.checked = values[14] === "0" ? false : true
-        specular_repeater.model = [values[15], values[16], values[17], values[18]]
-
-        emissive_cbx.checked = values[20] === "0" ? false : true
-        emissive_repeater.model = [values[21], values[22], values[23], values[24]]
-
-        shininess_cbx.checked = values[26] === "0" ? false : true
-        shininess_sb.value = values[27]
-        updating = false
-    }
-
-    property var diffuse_model
-    property var ambient_model
-    property var specular_model
-    property var emissive_model
 
     function setSofaValue() {
         if (!sofaData || updating) return
         var newValue = name_tf.text
-                + " Diffuse " + (diffuse_cbx.checked ? 1 : 0) + " " + diffuse_model.join(' ')
-                + " Ambient " + (ambient_cbx.checked ? 1 : 0) + " " + ambient_model.join(' ')
-                + " Specular " + (specular_cbx.checked ? 1 : 0) + " " + specular_model.join(' ')
-                + " Emissive " + (emissive_cbx.checked ? 1 : 0) + " " + emissive_model.join(' ')
+                + " Diffuse "   + (diffuse_cbx.checked ? 1 : 0)   + " " + diffuse_r.value  + ' ' + diffuse_g.value  + ' ' + diffuse_b.value  + ' ' + diffuse_a.value
+                + " Ambient "   + (ambient_cbx.checked ? 1 : 0)   + " " + ambient_r.value  + ' ' + ambient_g.value  + ' ' + ambient_b.value  + ' ' + ambient_a.value
+                + " Specular "  + (specular_cbx.checked ? 1 : 0)  + " " + specular_r.value + ' ' + specular_g.value + ' ' + specular_b.value + ' ' + specular_a.value
+                + " Emissive "  + (emissive_cbx.checked ? 1 : 0)  + " " + emissive_r.value + ' ' + emissive_g.value + ' ' + emissive_b.value + ' ' + emissive_a.value
                 + " Shininess " + (shininess_cbx.checked ? 1 : 0) + " " + shininess_sb.value
         console.log("Setting new value: " + newValue)
         sofaData.setValue(newValue)
     }
 
     ColumnLayout {
-        spacing: 0
+        spacing: -1
         anchors.fill: parent
         Layout.fillHeight: true
 
@@ -97,11 +100,12 @@ GroupBox {
             Layout.fillWidth: true
             Label {
                 text: "name: "
-                Layout.preferredWidth: 55
+                Layout.preferredWidth: 76
             }
             TextField {
                 id: name_tf
                 Layout.fillWidth: true
+                position: cornerPositions['Top']
                 onEditingFinished: {
                     setSofaValue()
                 }
@@ -123,22 +127,79 @@ GroupBox {
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 0
-                Repeater {
-                    id: diffuse_repeater
-                    model: [0,0,0,0]
-                    delegate: SpinBox {
-                        Layout.fillWidth: true
-                        value: modelData
-                        position: cornerPositions[index === 0 ? "Left" : index === 3 ? "Right" : "Middle"]
-                        from: 0
-                        to: 1
-                        onValueChanged: {
-                            diffuse_model = diffuse_repeater.model
-                            diffuse_model[index] = value
-                            setSofaValue()
-                        }
+                spacing: -1
+                // INITIALLY WANTED TO USE A REPEATER HERE... activeFocus:
+                // It isn't possible because repeaters destroy / reconstruct their delegates when the model changes.
+                // this makes spinbox lose focus while editing using mouse drags.
+                // To alleviate the issue, one would think it's possible to modify the values inside the model instead of replacing the whole model.
+                // Sadly this doesn't work either because repeaters don't notify their delegates when the modeldata change
+                // Thus repeaters suck in this context, and I need to manually declare each spinbox. sucks
+//                Repeater {
+//                    id: diffuse_repeater
+//                    model: d_model
+//                    delegate: SpinBox {
+//                        Layout.fillWidth: true
+//                        value: modelData
+//                        position: cornerPositions["Middle"]
+//                        from: 0
+//                        to: 1
+//                        function setValue(value) {
+//                            diffuse_model = diffuse_repeater.model
+//                            diffuse_model[index] = value
+//                            setSofaValue()
+//                        }
+
+//                        onValueChanged: {
+//                            setValue(value)
+//                        }
+//                        onValueEditted: {
+//                            setValue(value)
+//                        }
+//                    }
+//                }
+                SpinBox {
+                    id: diffuse_r
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
                     }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: diffuse_g
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: diffuse_b
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: diffuse_a
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
                 }
             }
         }
@@ -159,22 +220,69 @@ GroupBox {
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 0
-                Repeater {
-                    id: ambient_repeater
-                    model: [0,0,0,0]
-                    delegate: SpinBox {
-                        Layout.fillWidth: true
-                        value: modelData
-                        position: cornerPositions[index === 0 ? "Left" : index === 3 ? "Right" : "Middle"]
-                        from: 0
-                        to: 1
-                        onValueChanged:  {
-                            ambient_model = ambient_repeater.model
-                            ambient_model[index] = value
-                            setSofaValue()
-                        }
+                spacing: -1
+//                Repeater {
+//                    id: ambient_repeater
+//                    model: a_model
+//                    delegate: SpinBox {
+//                        Layout.fillWidth: true
+//                        value: modelData
+//                        position: cornerPositions["Middle"]
+//                        from: 0
+//                        to: 1
+//                        function setValue()  {
+//                            ambient_model = ambient_repeater.model
+//                            ambient_model[index] = value
+//                            setSofaValue()
+//                        }
+
+//                        onValueChanged: setValue(value)
+//                        onValueEditted: setValue(value)
+//                    }
+//                }
+                SpinBox {
+                    id: ambient_r
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
                     }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: ambient_g
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: ambient_b
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: ambient_a
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
                 }
             }
         }
@@ -195,22 +303,69 @@ GroupBox {
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 0
-                Repeater {
-                    id: specular_repeater
-                    model: [0,0,0,0]
-                    delegate: SpinBox {
-                        Layout.fillWidth: true
-                        value: modelData
-                        position: cornerPositions[index === 0 ? "Left" : index === 3 ? "Right" : "Middle"]
-                        from: 0
-                        to: 1
-                        onValueChanged:  {
-                            specular_model = specular_repeater.model
-                            specular_model[index] = value
-                            setSofaValue()
-                        }
+                spacing: -1
+//                Repeater {
+//                    id: specular_repeater
+//                    model: s_model
+//                    delegate: SpinBox {
+//                        Layout.fillWidth: true
+//                        value: modelData
+//                        position: cornerPositions["Middle"]
+//                        from: 0
+//                        to: 1
+//                        function setValue() {
+//                            specular_model = specular_repeater.model
+//                            specular_model[index] = value
+//                            setSofaValue()
+//                        }
+
+//                        onValueChanged: setValue(value)
+//                        onValueEditted: setValue(value)
+//                    }
+//                }
+                SpinBox {
+                    id: specular_r
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
                     }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: specular_g
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: specular_b
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: specular_a
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
                 }
             }
         }
@@ -231,22 +386,69 @@ GroupBox {
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 0
-                Repeater {
-                    id: emissive_repeater
-                    model: [0,0,0,0]
-                    delegate: SpinBox {
-                        Layout.fillWidth: true
-                        value: modelData
-                        position: cornerPositions[index === 0 ? "Left" : index === 3 ? "Right" : "Middle"]
-                        from: 0
-                        to: 1
-                        onValueChanged:  {
-                            emissive_model = emissive_repeater.model
-                            emissive_model[index] = value
-                            setSofaValue()
-                        }
+                spacing: -1
+//                Repeater {
+//                    id: emissive_repeater
+//                    model: e_model
+//                    delegate: SpinBox {
+//                        Layout.fillWidth: true
+//                        value: modelData
+//                        position: cornerPositions["Middle"]
+//                        from: 0
+//                        to: 1
+//                        function setValue() {
+//                            emissive_model = emissive_repeater.model
+//                            emissive_model[index] = value
+//                            setSofaValue()
+//                        }
+
+//                        onValueChanged: setValue(value)
+//                        onValueEditted: setValue(value)
+//                    }
+//                }
+                SpinBox {
+                    id: emissive_r
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
                     }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: emissive_g
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: emissive_b
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
+                }
+                SpinBox {
+                    id: emissive_a
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 1
+
+                    onValueChanged: {
+                        setSofaValue()
+                    }
+                    position: cornerPositions["Middle"]
                 }
             }
         }
@@ -272,6 +474,7 @@ GroupBox {
                 onValueChanged:  {
                     setSofaValue()
                 }
+                position: cornerPositions["Bottom"]
             }
         }
     }

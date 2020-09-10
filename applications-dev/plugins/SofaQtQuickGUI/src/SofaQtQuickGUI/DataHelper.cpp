@@ -38,6 +38,9 @@ using sofa::helper::OptionsGroup ;
 #include <sofa/core/objectmodel/DataFileName.h>
 using sofa::core::objectmodel::DataFileName ;
 
+#include <sofa/helper/types/Material.h>
+using sofa::helper::types::Material;
+
 #include <sofa/helper/types/RGBAColor.h>
 using sofa::helper::types::RGBAColor ;
 
@@ -55,6 +58,63 @@ using sofa::defaulttype::DataTypeInfo;
 using sofa::defaulttype::DataTypeName;
 using sofa::core::objectmodel::Data;
 
+QVariant QVariantFromDataFileName(const BaseData* data)
+{
+    if (dynamic_cast<const DataFileName*>(data))
+        return QVariant::fromValue(QString::fromStdString(dynamic_cast<const DataFileName*>(data)->getAbsolutePath()));
+    return QVariant();
+}
+
+QVariant QVariantFromMaterial(const BaseData* data)
+{
+    if (data->getName() == "material")
+        std::cout << "QVariantfromMaterial" << std::endl;
+    auto material = dynamic_cast<const Data<Material>*>(data);
+    if (material)
+    {
+        auto m = material->getValue();
+        QVariantMap map;
+        map.insert("name", QVariant::fromValue(QString::fromStdString(m.name)));
+        map.insert("useDiffuse", QVariant::fromValue(m.useDiffuse));
+        QVariantList rgba;
+        rgba.push_back(QVariant::fromValue(m.diffuse.r()));
+        rgba.push_back(QVariant::fromValue(m.diffuse.g()));
+        rgba.push_back(QVariant::fromValue(m.diffuse.b()));
+        rgba.push_back(QVariant::fromValue(m.diffuse.a()));
+        map.insert("diffuse", QVariant::fromValue(rgba));
+        map.insert("useAmbient", QVariant::fromValue(m.useAmbient));
+        rgba.clear();
+        rgba.push_back(QVariant::fromValue(m.ambient.r()));
+        rgba.push_back(QVariant::fromValue(m.ambient.g()));
+        rgba.push_back(QVariant::fromValue(m.ambient.b()));
+        rgba.push_back(QVariant::fromValue(m.ambient.a()));
+        map.insert("ambient", QVariant::fromValue(rgba));
+        map.insert("useSpecular", QVariant::fromValue(m.useSpecular));
+        rgba.clear();
+        rgba.push_back(QVariant::fromValue(m.specular.r()));
+        rgba.push_back(QVariant::fromValue(m.specular.g()));
+        rgba.push_back(QVariant::fromValue(m.specular.b()));
+        rgba.push_back(QVariant::fromValue(m.specular.a()));
+        map.insert("specular", QVariant::fromValue(rgba));
+        map.insert("useEmissive", QVariant::fromValue(m.useEmissive));
+        rgba.clear();
+        rgba.push_back(QVariant::fromValue(m.emissive.r()));
+        rgba.push_back(QVariant::fromValue(m.emissive.g()));
+        rgba.push_back(QVariant::fromValue(m.emissive.b()));
+        rgba.push_back(QVariant::fromValue(m.emissive.a()));
+        map.insert("emissive", QVariant::fromValue(rgba));
+        map.insert("useShininess", QVariant::fromValue(m.useShininess));
+        map.insert("shininess", QVariant::fromValue(m.shininess));
+        map.insert("activated", QVariant::fromValue(m.activated));
+        if (data->getName() == "material")
+            std::cout << data->getName() << " is of type Material" << std::endl;
+        return QVariant::fromValue(map);
+    }
+    if (data->getName() == "material")
+        std::cout << data->getName() << " is NOT A Material" << std::endl;
+    return QVariant();
+}
+
 QVariant createQVariantFromData(const BaseData* data)
 {
     QVariant value;
@@ -62,9 +122,13 @@ QVariant createQVariantFromData(const BaseData* data)
     if(!data)
         return value;
 
-    if (dynamic_cast<const DataFileName*>(data))
-        return QVariant::fromValue(QString::fromStdString(dynamic_cast<const DataFileName*>(data)->getAbsolutePath()));
+    if (data->getName() == "material")
+        std::cout << "PLOP" << std::endl;
+    // Specialized conversions
+    if ((value = QVariantFromDataFileName(data)).isValid()) return value;
+    if ((value = QVariantFromMaterial(data)).isValid()) return value;
 
+    // Generic conversions based on AbstractTypeInfo
     const AbstractTypeInfo* typeinfo = data->getValueTypeInfo();
     const void* valueVoidPtr = data->getValueVoidPtr();
 
@@ -157,7 +221,7 @@ QVariant createQVariantFromData(const BaseData* data)
 
             value = values;
         }
-        else
+        else // conversion to string using getValueString()
         {
             value = QString::fromStdString(data->getValueString());
         }
