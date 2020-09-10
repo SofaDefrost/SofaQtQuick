@@ -332,10 +332,10 @@ QVariant SofaSceneItemModel::data(const QModelIndex &index, int role) const
     case Roles::ShortName:
         return QVariant::fromValue(QString::fromStdString(currentBase->getClass()->shortName));
     case Roles::IsNode:
-        return QVariant(currentBase->toBaseNode()!=nullptr);
+        return QVariant(currentNode!=nullptr);
     case Roles::IsMultiParent:
         if(currentNode)
-            return QVariant(currentBase->toBaseNode()->getNbParents()!=1);
+            return QVariant(currentNode->getNbParents()!=1);
         else
             return QVariant(false);
     case Roles::HasMultiParent:
@@ -344,7 +344,14 @@ QVariant SofaSceneItemModel::data(const QModelIndex &index, int role) const
         else
             return QVariant(false);
     case Roles::IsEnabled:
-        return QVariant(true);
+    {
+        bool isActive = true;
+        if (currentNode)
+            isActive = static_cast<sofa::simulation::graph::DAGNode*>(currentNode)->is_activated.getValue();
+        else
+            isActive = currentBase->toBaseObject()->getContext()->isActive();
+        return QVariant(isActive);
+    }
     case Roles::Row:
         return QVariant(index.row());
     case Roles::Status:

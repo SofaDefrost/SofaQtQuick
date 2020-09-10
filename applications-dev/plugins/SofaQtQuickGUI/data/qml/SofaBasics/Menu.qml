@@ -7,6 +7,7 @@ import SofaApplication 1.0
 Menu {
     id: root
     property var style: "normal"
+
     delegate: SB.MenuItem {
         style: root.style
     }

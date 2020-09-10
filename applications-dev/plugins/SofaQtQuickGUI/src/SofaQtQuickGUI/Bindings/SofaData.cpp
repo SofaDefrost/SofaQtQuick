@@ -107,7 +107,7 @@ bool SofaData::setValue(const QVariant& value)
         {
             m_self->setPersistent(true);
             m_previousValue = value;
-            emit valueChanged(value);
+            emit valueChanged(sofaqtquick::helper::createQVariantFromData(m_self));
             emit propertiesChanged(getProperties());
             _connect();
             return true;
@@ -239,9 +239,9 @@ bool SofaData::tryLinkingIncompatibleTypes(const QString& path)
             return true;
         QString srcType = srcData->getValueTypeString().c_str();
         QString dstType = dstData->getValueTypeString().c_str();
-        QString title("Warning: You're trying to link incompatible types. ");
-        title = title + srcType + " != " + dstType ;
-        if (QMessageBox::question(nullptr, title, tr("Do you want to create a PythonDataTrackerEngine?")) == QMessageBox::StandardButton::Yes)
+//        QString title("Warning: You're trying to link incompatible types. ");
+//        title = title + srcType + " != " + dstType ;
+//        if (QMessageBox::question(nullptr, title, tr("Do you want to create a PythonDataTrackerEngine?")) == QMessageBox::StandardButton::Yes)
         {
             auto sa = SofaBaseApplication::Instance();
             auto modulename = srcType.replace("<", "_").replace(">", "_") + "2" + dstType.replace("<", "_").replace(">", "_");

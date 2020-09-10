@@ -20,6 +20,7 @@ public:
         CompletionRole,
         NameRole,
         HelpRole,
+        CanLinkRole,
     };
     SofaLinkCompletionModel(QObject* parent = nullptr)
         : QAbstractListModel(parent),
@@ -59,6 +60,7 @@ private:
     QStringList m_modelText;
     QStringList m_modelName;
     QStringList m_modelHelp;
+    QList<bool> m_modelCanLink;
 
 
 

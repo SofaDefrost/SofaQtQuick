@@ -29,7 +29,7 @@ ColumnLayout {
 
 
         Layout.fillWidth: true
-        implicitHeight: (rowCount <= 10 ? rowCount * 16 : 160) + 20
+        implicitHeight: (rowCount <= 10 ? rowCount * 16 : 160) + (root.sofaData.properties.subtype !== "string" ? 20 : 0)
 
         horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
         rowDelegate: Rectangle {
@@ -39,7 +39,7 @@ ColumnLayout {
             color: "#757575"
             border.width: 1
             border.color: "#393939"
-            height: 20
+            height: root.sofaData.properties.subtype !== "string" ? 20 : 0
             width: textItem.implicitWidth
             Text {
                 id: textItem
@@ -51,6 +51,7 @@ ColumnLayout {
                 elide: Text.ElideRight
                 renderType: Text.NativeRendering
             }
+            visible: root.sofaData.properties.subtype !== "string"
         }
         Component {
             id: valuesColumn
@@ -123,12 +124,45 @@ ColumnLayout {
                     color: styleData.textColor
                     horizontalAlignment: TextEdit.AlignHCenter
                     verticalAlignment: TextEdit.AlignVCenter
-                    validator: DoubleValidator {}
+
+                    DoubleValidator {
+                        id: validator_double
+                    }
+                    IntValidator {
+                        id: validator_int
+
+                    }
+
+                    validator: {
+                        if (root.sofaData.properties.subtype === "number")
+                        {
+                            if (root.sofaData.properties.decimals === 0)
+                            {
+                                if (root.sofaData.properties.min === 0)
+                                    validator_int.bottom = 0
+                                return validator_int
+                            }
+                        }
+                        else if (root.sofaData.properties.subtype === "boolean")
+                        {
+                            validator_int.bottom = 0
+                            validator_int.top = 1
+                            return validator_int
+                        }
+                        else // if (root.sofaData.properties.subtype === "string")
+                        {
+                            return null
+                        }
+                    }
+
                     function getText() {
                         if (styleData.column === 0)
                             var txt = parseInt(Number(listModel.data(listModel.index(styleData.row, 0), styleData.column)).toPrecision(6)).toString();
                         else if(-1 !== styleData.row) {
-                            txt = Number(listModel.data(listModel.index(styleData.row, 0), styleData.column)).toPrecision(6);
+                            if (root.sofaData.properties.subtype === "number")
+                                txt = Number(listModel.data(listModel.index(styleData.row, 0), styleData.column)).toPrecision(6);
+                            else
+                                txt = listModel.data(listModel.index(styleData.row, 0), styleData.column)
                         }
                         else {
                             txt = "#REF!" // Hum... maybe a better "invalid cell" convention than ms excel....?
@@ -175,7 +209,7 @@ ColumnLayout {
 
 
             sourceComponent: {
-                console.log("c: "+ styleData.column + " , r: " + styleData.row + "\t v:" + Number(listModel.data(listModel.index(styleData.row, 0), styleData.column)) );
+//                console.log("c: "+ styleData.column + " , r: " + styleData.row + "\t v:" + Number(listModel.data(listModel.index(styleData.row, 0), styleData.column)) );
                 return styleData.column === 0 && styleData.row === tableView.rowCount -1 ?
                             lastRowIdxComponent : cellComponent
             }
@@ -192,18 +226,38 @@ ColumnLayout {
         Repeater {
             id: repeaterId
             model: root.sofaData.properties.cols
-            delegate: SpinBox {
-                Layout.fillWidth: true
-                value: 0
-                position: cornerPositions[index == 0 ? 'Left' : 'Middle']
+
+            Component {
+                id: spinbox_entry
+                SpinBox {
+                    Layout.fillWidth: true
+                    value: 0
+                    position: cornerPositions[index == 0 ? 'Left' : 'Middle']
+                }
             }
+            Component {
+                id: txt_entry
+                TextField {
+                    Layout.fillWidth: true
+                    placeholderText: "newline"
+
+                    onEditingFinished: {
+                        selectAll()
+                        add_row_btn.clicked()
+                    }
+                }
+            }
+
+            delegate: root.sofaData.properties.substype === "number" ? spinbox_entry : txt_entry
         }
         Button {
+            id: add_row_btn
             text: "Add row"
             onClicked: {
+
                 var list = []
                 for (var i = 0 ; i < repeaterId.count ; ++i) {
-                    list[i] = repeaterId.itemAt(i).value
+                    list[i] = root.sofaData.properties.type === "number" ? repeaterId.itemAt(i).value : repeaterId.itemAt(i).text
                 }
                 listModel.insertRow(list)
             }

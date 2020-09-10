@@ -110,6 +110,8 @@ public:
     Q_INVOKABLE void insertNodeAfter(SofaNode* afterNode, SofaNode* node);
     Q_INVOKABLE void insertChild(SofaNode* node, unsigned int position);
 
+    Q_INVOKABLE void toggleActive(bool activate);
+
     Q_INVOKABLE void removeObject(SofaBaseObject* obj);
 
     Q_INVOKABLE SofaBaseObject* getObject(const QString& name) const;
@@ -131,6 +133,8 @@ public:
 private:
     bool attemptToBreakPrefab();
     sofa::core::objectmodel::BaseNode *getPrefabAncestor(sofa::core::objectmodel::BaseNode* n) const;
+
+    Q_SIGNAL void activeChanged(bool isActive);
 
 };
 

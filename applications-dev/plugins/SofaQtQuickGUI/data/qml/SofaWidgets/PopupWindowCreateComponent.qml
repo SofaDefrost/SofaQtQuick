@@ -61,6 +61,7 @@ Popup {
         focus: true
         selectByMouse: true
         Keys.forwardTo: [container]
+        placeholderText: "eg. MechanicalObject"
         Keys.onPressed:
         {
             if (event.key === Qt.Key_Return)
@@ -177,7 +178,7 @@ Popup {
                         inputField.forceActiveFocus()
                     }
                     onOpened: {
-                        contentData[0].forceActiveFocus()
+                        inputField.forceActiveFocus()
                     }
 
                     Repeater {

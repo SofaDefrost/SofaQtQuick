@@ -68,6 +68,9 @@ private:
         if (!m_sofaData) return 0;
 
         auto typeinfo = m_sofaData->rawData()->getValueTypeInfo();
+
+        if (typeinfo->Text())
+            return 1;
         int nbCols = int(typeinfo->BaseType()->size());
         if (nbCols == 1)
             return int(typeinfo->size());
@@ -78,6 +81,10 @@ private:
     {
         if (!m_sofaData) return 0;
         auto typeinfo = m_sofaData->rawData()->getValueTypeInfo();
+
+        if (typeinfo->Text())
+            return int(typeinfo->size(m_sofaData->rawData()->getValueVoidPtr()));
+
         return int(typeinfo->size(m_sofaData->rawData()->getValueVoidPtr()) / size_t(nCols()));
     }
 };
