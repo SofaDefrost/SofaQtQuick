@@ -142,10 +142,10 @@ ColumnLayout {
                                         if (drag.source.item.getPathName() === SofaApplication.selectedComponent.getPathName()) {
                                             return;
                                         }
-                                        var data = drag.source.item.findData(sofaData.getName())
-                                        if (sofaData.getValueType() === "PrefabLink" || data !== null) {
+//                                        var data = drag.source.item.findData(sofaData.getName())
+//                                        if (sofaData.getValueType() === "PrefabLink"/* || data !== null*/) {
                                             dataFrame.visible = true
-                                        }
+//                                        }
                                     }
                                     onExited: {
                                         dataFrame.visible = false
@@ -162,9 +162,13 @@ ColumnLayout {
                                             return;
                                         }
                                         var data = drag.source.item.findData(sofaData.getName())
-                                        if (data !== null) {
+                                        if (data === null) {
+                                            linkButton.checked = true
+                                            dataItemLoader.item.setCompletion("@" + drag.source.item.getPathName() + ".")
+                                        } else {
                                             sofaData.setValue(data.value)
                                             sofaData.setParent(data)
+                                            dataItemLoader.item.setCompletion(data.getLinkPath())
                                         }
                                         dataFrame.visible = false
                                     }
@@ -184,6 +188,8 @@ ColumnLayout {
                                     : "qrc:/SofaDataTypes/SofaDataType_" + sofaDataLayout.sofaData.properties.type + ".qml"
                             onLoaded: {
                                 item.sofaData = Qt.binding(function(){return sofaDataLayout.sofaData})
+                                if (sofaDataLayout.sofaData.properties.type === "Material")
+                                    item.expanded = false
                             }
                             DropArea {
                                 id: dropArea2
@@ -194,15 +200,18 @@ ColumnLayout {
                                         sofaData.value = "@" + drag.source.item.getPathName()
                                         return;
                                     }
-                                    var data = drag.source.item.getData(sofaData.getName())
+                                    var data = drag.source.item.findData(sofaData.getName())
                                     if (drag.source.item.getPathName() === SofaApplication.selectedComponent.getPathName()) {
                                         console.error("Cannot link datafields to themselves")
                                         return;
                                     }
-
-                                    if (data !== null) {
+                                    if (data === null) {
+                                        linkButton.checked = true
+                                        dataItemLoader.item.setCompletion("@" + drag.source.item.getPathName() + ".")
+                                    } else {
                                         sofaData.setValue(data.value)
                                         sofaData.setParent(data)
+                                        dataItemLoader.item.setCompletion(data.getLinkPath())
                                     }
                                 }
                             }
@@ -230,6 +239,14 @@ ColumnLayout {
                                 id: linkButtonImage
                                 anchors.fill: parent
                                 source: sofaDataLayout.sofaData.parent ? "qrc:/icon/validLink.png" : "qrc:/icon/invalidLink.png"
+                            }
+
+                            Connections {
+                                target: sofaDataLayout.sofaData
+                                function onParentChanged(parent) {
+                                    if (parent === null)
+                                        linkButton.checked = Qt.binding(function (){return sofaDataLayout.sofaData ? null !== sofaDataLayout.sofaData.parent : false})
+                                }
                             }
                         }
                     }

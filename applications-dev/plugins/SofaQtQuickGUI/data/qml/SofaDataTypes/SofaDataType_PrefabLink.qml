@@ -54,6 +54,7 @@ RowLayout {
         {
             target: root.sofaData
             function onValueChanged(value) {
+                if (value === undefined) return
                 text=value.toString()
             }
         }
