@@ -243,7 +243,7 @@ class GraphSerializer:
             attributes = self.buildDataParams(fd, item)
             parentPath = self.getAbsPythonCallPath(item.getContext() if hasattr(item, "getContext") else item.parents[0])
             if isinstance(item, Sofa.Prefab):
-                fd.write(self.indent + str(item.prefabname.value) + "(" + parentPath + ", name='" + item.getName() + "'" + attributes + ")\n")
+                fd.write(self.indent + parentPath + ".addChild(" + str(item.prefabname.value) + "(" + "name='" + item.getName() + "'" + attributes + "))\n")
             else:
                 fd.write(self.indent + parentPath + ".addObject('" + item.getClassName() + "', name='" + item.getName() + "'" + attributes + ")\n")
         return item
