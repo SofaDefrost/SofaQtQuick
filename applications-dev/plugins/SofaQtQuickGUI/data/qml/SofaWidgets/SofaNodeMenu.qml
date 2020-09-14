@@ -14,9 +14,9 @@ import Sofa.Core.SofaData 1.0
 Menu {
     id: nodeMenu
 
-    onVisibleChanged: {
-        SofaApplication.selectedComponent = getComponent()
-    }
+//    onVisibleChanged: {
+//        SofaApplication.selectedComponent = getComponent()
+//    }
 
     function parsePython(c)
     {
