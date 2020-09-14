@@ -84,7 +84,7 @@ Popup {
         onTextEdited:
         {
             SofaFactory.setFilter(text)
-            container.currentIndex = -1
+            container.currentIndex = 0
         }
 
         onAccepted:
