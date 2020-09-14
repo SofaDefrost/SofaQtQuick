@@ -25,7 +25,7 @@ ColumnLayout {
     Repeater {
         id: groupRepeater
         model: Object.keys(dataDict).length
-
+        Layout.fillWidth: true
         GroupBox {
             id: dataGroup
             title: Object.keys(dataDict)[index]
@@ -142,10 +142,7 @@ ColumnLayout {
                                         if (drag.source.item.getPathName() === SofaApplication.selectedComponent.getPathName()) {
                                             return;
                                         }
-//                                        var data = drag.source.item.findData(sofaData.getName())
-//                                        if (sofaData.getValueType() === "PrefabLink"/* || data !== null*/) {
-                                            dataFrame.visible = true
-//                                        }
+                                        dataFrame.visible = true
                                     }
                                     onExited: {
                                         dataFrame.visible = false
@@ -187,6 +184,7 @@ ColumnLayout {
                                     ? "qrc:/SofaBasics/SofaLinkItem.qml"
                                     : "qrc:/SofaDataTypes/SofaDataType_" + sofaDataLayout.sofaData.properties.type + ".qml"
                             onLoaded: {
+                                item.Layout.fillWidth = true
                                 item.sofaData = Qt.binding(function(){return sofaDataLayout.sofaData})
                                 if (sofaDataLayout.sofaData.properties.type === "Material")
                                     item.expanded = false
@@ -278,30 +276,25 @@ ColumnLayout {
                         }
                         elide: Text.ElideRight
                     }
-                    TextField {
-                        id: txtField
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        readOnly: false
+                    Loader {
+                        id: linkItemLoader
 
-                        text: component.findLink(modelData).getLinkedPath().trim()
+                        Layout.fillWidth: true
+                        source: "qrc:/SofaBasics/SofaLinkItem.qml"
+                        onLoaded: {
+                            item.sofaLink = component.findLink(modelData)
+                        }
                         DropArea {
                             id: link_dropArea1
                             anchors.fill: parent
-
                             onDropped: {
+                                console.log("Dropped item " + drag.source.item.getName())
                                 component.findLink(modelData).setLinkedBase(drag.source.item)
-                                txtField.text = Qt.binding(function(){ return component.findLink(modelData).getLinkedPath().trim() })
+                                linkItemLoader.item.sofaLink = component.findLink(modelData)
                             }
                         }
-                        onEditingFinished: {
-                            component.findLink(modelData).setLinkedPath(text)
-                            focus = false
-                        }
-                        onTextEdited: {
-                            component.findLink(modelData).setLinkedPath(text)
-                        }
                     }
+
                     Rectangle {
                         color: "transparent"
                         width: 14

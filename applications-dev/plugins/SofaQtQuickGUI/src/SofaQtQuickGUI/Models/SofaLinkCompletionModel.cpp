@@ -12,6 +12,7 @@ void SofaLinkCompletionModel::setSofaData(sofaqtquick::bindings::_sofadata_::Sof
     if (!newSofaData) return;
 
     m_sofaData = newSofaData;
+    m_sofaLink = nullptr;
     sofa::core::objectmodel::Base* base = newSofaData->rawData()->getOwner();
     m_relativeRoot = base->toBaseNode();
     if (!m_relativeRoot) {
@@ -24,7 +25,31 @@ void SofaLinkCompletionModel::setSofaData(sofaqtquick::bindings::_sofadata_::Sof
     }
     m_absoluteRoot = m_relativeRoot->getRoot();
     updateModel();
-    emit sofaDataChanged(m_sofaData);
+    emit sofaLinkChanged(nullptr);
+    emit sofaDataChanged(newSofaData);
+}
+
+void SofaLinkCompletionModel::setSofaLink(sofaqtquick::bindings::_sofalink_::SofaLink* newSofaLink)
+{
+    if (!newSofaLink) return;
+
+    m_sofaLink = newSofaLink;
+    m_sofaData = nullptr;
+    sofa::core::objectmodel::Base* base = newSofaLink->self()->getOwnerBase();
+    m_relativeRoot = base->toBaseNode();
+    if (!m_relativeRoot) {
+        sofa::core::objectmodel::BaseObject* baseobject = base->toBaseObject();
+        if (baseobject) {
+            m_relativeRoot = baseobject->getContext()->toBaseNode();
+        } else {
+            msg_error("SofaLinkCompletionModel") << "Can't fetch links: sofaLink " + m_sofaLink->self()->getName() + " has no context.";
+        }
+    }
+    m_absoluteRoot = m_relativeRoot->getRoot();
+    updateModel();
+    setIsComponent(true); // Always components with SofaLinks
+    emit sofaDataChanged(nullptr);
+    emit sofaLinkChanged(newSofaLink);
 }
 
 void SofaLinkCompletionModel::setLinkPath(QString newlinkPath)
@@ -104,7 +129,7 @@ Base* SofaLinkCompletionModel::getLastValidObject(QString& lastValidLinkPath)
 
 void SofaLinkCompletionModel::updateModel()
 {
-    if (!m_sofaData) return;
+    if (!m_sofaData && !m_sofaLink) return;
     beginResetModel();
     QString lastValidLinkPath = "";
     std::string path_separator = "/";
@@ -153,6 +178,7 @@ void SofaLinkCompletionModel::updateModel()
 
     if (!m_isComponent)
     {
+        if (!m_sofaData) return;
         QStringList modelText, modelName, modelHelp;
         QList<bool> modelCanLink;
         for (auto data : lastValid->getDataFields())
@@ -179,6 +205,8 @@ void SofaLinkCompletionModel::updateModel()
     }
     m_modelText.erase(std::remove_if(m_modelText.begin(), m_modelText.end(),
                      [this](const QString &s) { return !s.contains(m_linkPath); }), m_modelText.end());
+
+    std::cout << "Model Updated: " << m_modelText.join("\n").toStdString() << std::endl;;
 
     endResetModel();
 }

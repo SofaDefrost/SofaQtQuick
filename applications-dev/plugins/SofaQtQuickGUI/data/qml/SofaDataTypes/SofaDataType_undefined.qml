@@ -30,6 +30,7 @@ ColumnLayout {
     property SofaData sofaData: null
     property int refreshCounter: 0
 
+    Layout.fillWidth: true
     Layout.fillHeight: true
     Label {
         id: lbl

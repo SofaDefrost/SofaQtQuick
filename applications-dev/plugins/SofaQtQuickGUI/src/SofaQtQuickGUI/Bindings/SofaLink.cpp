@@ -70,14 +70,29 @@ SofaBase* SofaLink::getLinkedBase(size_t index)
                                                          "Unable to get SofaBase.");
 }
 
+sofaqtquick::bindings::_sofabase_::SofaBase* SofaLink::getOwnerBase()
+{
+    return new SofaBase(sofa::core::objectmodel::Base::SPtr(m_self->getOwnerBase()));
+}
+
 void SofaLink::setLinkedBase(sofaqtquick::bindings::_sofabase_::SofaBase *linkedbase)
 {
-    m_self->setLinkedBase(linkedbase->rawBase());
+    if (linkedbase) {
+        m_self->setLinkedBase(linkedbase->rawBase());
+        emit targetChanged(linkedbase);
+        emit targetPathChanged(linkedbase->getPathName());
+    }
+    else {
+        m_self->setLinkedBase(nullptr);
+        emit targetPathChanged("@");
+        emit targetChanged(nullptr);
+    }
 }
 
 void SofaLink::setLinkedPath(const QString& path)
 {
     m_self->read(path.toStdString());
+    emit targetPathChanged(path);
 }
 
 SofaData* SofaLink::getLinkedData(size_t index)
@@ -101,6 +116,17 @@ QString SofaLink::getLinkedPath(size_t index)
         return nullptr;
     }
     return QString::fromStdString(m_self->getLinkedPath(index));
+}
+
+QString SofaLink::getOwnerPath()
+{
+    return QString::fromStdString(self()->getOwnerBase()->getPathName());
+}
+
+bool SofaLink::isLinkValid(const QString &linkpath)
+{
+    sofa::core::objectmodel::Base* b = self()->getOwnerBase();
+    return self()->getOwnerBase()->findLinkDest(b, linkpath.toStdString(), self());
 }
 
 
