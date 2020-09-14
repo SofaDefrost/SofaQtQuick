@@ -41,9 +41,9 @@ Menu {
     function getParentComponent() {
         return model.model.getBaseFromIndex(model.mapToSource(index).parent)
     }
-    onVisibleChanged: {
-        SofaApplication.selectedComponent = getComponent()
-    }
+//    onVisibleChanged: {
+////        SofaApplication.selectedComponent = getComponent()
+//    }
 
     MenuItem {
         enabled: true
