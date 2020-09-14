@@ -7,9 +7,27 @@ import SofaLinkCompletionModel 1.0
 /// Implement the widget for Links.
 ColumnLayout {
     id: control
+
     property alias text: txtField.text
-    property var sofaData
-    property string parentLinkPath : sofaData.parent !== null ? sofaData.getParent().linkPath : ""
+    property var sofaData: null
+    property var sofaLink: null
+    onSofaLinkChanged: {
+        completionModel.sofaLink = sofaLink
+    }
+    onSofaDataChanged: {
+        completionModel.sofaData = sofaData
+    }
+
+    property string parentLinkPath : getParentLinkPath()
+
+
+    function getParentLinkPath() {
+        if (sofaData)
+            return sofaData.parent !== null ? sofaData.getParent().linkPath : ""
+        else if (sofaLink) {
+            return sofaLink.targetPath.replace("//", "/")
+        }
+    }
 
     function setCompletion(path)
     {
@@ -36,14 +54,14 @@ ColumnLayout {
             position: breakLinkButton.visible ? cornerPositions["Left"] : cornerPositions["Single"]
             Layout.fillWidth: true
             Layout.preferredHeight: 20
-            placeholderText: sofaData ? "Link: @./path/component." + sofaData.name : ""
+            placeholderText: sofaData ? "Link: @./path/component." + sofaData.name : sofaLink ? "Link: @/path/component" : ""
             placeholderTextColor: "gray"
             font.family: "Helvetica"
             font.weight: Font.Thin
             text: parentLinkPath
             width: parent.width
             clip: true
-            borderColor: 0 === parentLinkPath.length ? "red" : "#393939"
+            borderColor: 0 === parentLinkPath.length && sofaData ? "red" : "#393939"
             Keys.forwardTo: [listView.currentItem, listView]
 
             onEditingFinished: {
@@ -66,7 +84,8 @@ ColumnLayout {
 
                 txtField.borderColor = "#393939"
                 focus = false
-                sofaData.parentChanged(sofaData.parent)
+                if (sofaData)
+                    sofaData.parentChanged(sofaData.parent)
             }
             onTextEdited: {
                 isLinkValid(text)
@@ -77,21 +96,30 @@ ColumnLayout {
 
             function isLinkValid(value)
             {
-                var ret = sofaData.isLinkValid(value)
-                if (ret) {
-                    txtField.borderColor = "lightgreen"
-                    popup.close()
-                } else {
-                    txtField.borderColor = "red"
+                var ret = false
+                if (sofaData) {
+                    ret = sofaData.isLinkValid(value)
+                    if (ret) {
+                        txtField.borderColor = "lightgreen"
+                        popup.close()
+                    } else {
+                        txtField.borderColor = "red"
+                        if (!popup.opened)
+                            popup.open()
+                    }
+                }
+                else if (sofaLink) {
+                    ret = sofaLink.isLinkValid(value)
                     if (!popup.opened)
                         popup.open()
+                    txtField.borderColor = ret ? "lightgreen" : "red"
                 }
                 return ret
             }
 
             function setLinkIfValid(value) {
                 if (isLinkValid(value)) {
-                    return sofaData.setLink(value)
+                    return sofaData ? sofaData.setLink(value) : sofaLink.setLinkedPath(value)
                 }
                 return false
             }
@@ -119,7 +147,6 @@ ColumnLayout {
                     keyNavigationEnabled: true
                     model: SofaLinkCompletionModel {
                         id: completionModel
-                        sofaData: control.sofaData
                         isComponent: false
                         onModelReset: {
                             listView.implicitHeight = completionModel.rowCount() * 20
@@ -214,7 +241,12 @@ ColumnLayout {
             visible: parentLinkPath.length !== 0
             onClicked: {
                 // Break link
-                sofaData.setParent(null)
+                if (sofaData)
+                    sofaData.setParent(null)
+                else {
+                    sofaLink.setLinkedBase(null)
+                    txtField.text = parentLinkPath
+                }
             }
             Image {
                 width: 11

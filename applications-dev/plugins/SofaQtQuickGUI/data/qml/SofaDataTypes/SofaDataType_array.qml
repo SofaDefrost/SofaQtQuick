@@ -30,6 +30,7 @@ import SofaDataContainerListModel 1.0
 ColumnLayout {
     id: root
     spacing: 0
+    implicitWidth: parent.width
     Layout.fillWidth: true
 
     function updateText()

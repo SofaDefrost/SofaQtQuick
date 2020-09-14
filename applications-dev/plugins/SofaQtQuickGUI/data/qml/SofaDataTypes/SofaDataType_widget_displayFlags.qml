@@ -29,7 +29,7 @@ import SofaDisplayFlagsTreeModel 1.0
 TreeView {
     id: root
 
-    implicitWidth: 300
+    implicitWidth: parent.width
     implicitHeight: flickableItem.contentHeight
 
     property var sofaData: null

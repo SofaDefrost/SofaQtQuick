@@ -1,8 +1,8 @@
-#ifndef SOFALINKCOMPLETIONMODEL_H
-#define SOFALINKCOMPLETIONMODEL_H
+#pragma once
 
 #include <QAbstractListModel>
 #include <SofaQtQuickGUI/Bindings/SofaData.h>
+#include <SofaQtQuickGUI/Bindings/SofaLink.h>
 
 namespace sofa::core::objectmodel {
 class BaseNode;
@@ -25,10 +25,12 @@ public:
     SofaLinkCompletionModel(QObject* parent = nullptr)
         : QAbstractListModel(parent),
           m_sofaData(nullptr),
+          m_sofaLink(nullptr),
           m_linkPath("")
     {}
 
-    Q_PROPERTY(sofaqtquick::bindings::SofaData* sofaData READ sofaData WRITE setSofaData NOTIFY sofaDataChanged)
+    Q_PROPERTY(sofaqtquick::bindings::_sofalink_::SofaLink* sofaLink READ sofaLink WRITE setSofaLink NOTIFY sofaLinkChanged);
+    Q_PROPERTY(sofaqtquick::bindings::_sofadata_::SofaData* sofaData READ sofaData WRITE setSofaData NOTIFY sofaDataChanged);
     Q_PROPERTY(QString linkPath READ getLinkPath WRITE setLinkPath NOTIFY linkPathChanged)
     Q_PROPERTY(bool isComponent READ isComponent WRITE setIsComponent NOTIFY isComponentChanged)
 
@@ -39,11 +41,15 @@ public:
     inline sofaqtquick::bindings::SofaData* sofaData() const { return m_sofaData; }
     void setSofaData(sofaqtquick::bindings::SofaData* newSofaData);
 
+    inline sofaqtquick::bindings::_sofalink_::SofaLink* sofaLink() const { return m_sofaLink; }
+    void setSofaLink(sofaqtquick::bindings::_sofalink_::SofaLink* newSofaLink);
+
     inline QString getLinkPath() const { return m_linkPath; }
     void setLinkPath(QString newlinkPath);
 
 signals:
     void sofaDataChanged(sofaqtquick::bindings::SofaData* newSofaData) const;
+    void sofaLinkChanged(sofaqtquick::bindings::_sofalink_::SofaLink* newSofaLink) const;
     void linkPathChanged(QString newlinkPath) const;
     void isComponentChanged(bool isComponent) const;
 
@@ -53,7 +59,8 @@ protected:
     QHash<int, QByteArray> roleNames() const;
 
 private:
-    sofaqtquick::bindings::SofaData* m_sofaData;
+    sofaqtquick::bindings::_sofadata_::SofaData* m_sofaData;
+    sofaqtquick::bindings::_sofalink_::SofaLink* m_sofaLink;
     QString m_linkPath;
     bool m_isComponent;
 
@@ -74,5 +81,4 @@ private:
 
 };
 
-}
-#endif // SOFALINKCOMPLETIONMODEL_H
+}  // namespace sofaqtquick

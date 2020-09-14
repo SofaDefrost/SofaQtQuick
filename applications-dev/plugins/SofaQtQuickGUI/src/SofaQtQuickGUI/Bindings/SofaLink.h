@@ -41,16 +41,26 @@ namespace sofaqtquick::bindings
         public:
             SofaLink(BaseLink* self);
 
+            Q_PROPERTY(SofaBase* targetBase READ getLinkedBase WRITE setLinkedBase NOTIFY targetChanged)
+            Q_PROPERTY(QString targetPath READ getLinkedPath WRITE setLinkedPath NOTIFY targetPathChanged)
+
             /// Returns the number of link in the SofaLink (in case of multilinks)
             Q_INVOKABLE unsigned int getSize();
             Q_INVOKABLE SofaBase* getLinkedBase(size_t index = 0);
+            Q_INVOKABLE SofaBase* getOwnerBase();
             Q_INVOKABLE void setLinkedBase(SofaBase* linkedbase);
             Q_INVOKABLE void setLinkedPath(const QString& str);
             Q_INVOKABLE SofaData* getLinkedData(size_t index = 0);
             Q_INVOKABLE QString   getLinkedPath(size_t index = 0);
+            Q_INVOKABLE QString    getOwnerPath();
+            Q_INVOKABLE bool isLinkValid(const QString& link);
 
+            const BaseLink* self() { return m_self; }
         private:
             BaseLink* m_self {nullptr};
+
+            Q_SIGNAL void targetPathChanged(QString path);
+            Q_SIGNAL void targetChanged(SofaBase* target);
         };
     }
 
