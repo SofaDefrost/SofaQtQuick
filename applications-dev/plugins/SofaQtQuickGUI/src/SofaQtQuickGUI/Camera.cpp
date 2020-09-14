@@ -353,8 +353,8 @@ void Camera::fit(QVector3D min, QVector3D max, float radiusFactor)
     if(distance < 0.0001 || !(distance == distance)) // return if incorrect value, i.e < epsilon or nan
         return;
 
-    setZNear(qMax(0.01, distance - radius * 100));
-    setZFar(distance + radius * 100);
+    setZNear(qMin(myZNear, distance - radius * 100));
+    setZFar(qMax(myZFar, distance + radius * 100));
 
     if(!(myTarget == myTarget)) // wtf?
         myTarget = QVector3D(0.0f, 0.0f, 0.0f);
@@ -400,8 +400,8 @@ void Camera::adjustZRange(QVector3D min, QVector3D max, float radiusFactor)
     if(distance < 0.0001 || !(distance == distance)) // return if incorrect value, i.e < epsilon or nan
         return;
 
-    setZNear(qMax(0.01, distance - radius * 100));
-    setZFar(distance + radius * 100);
+    setZNear(qMin(myZNear, distance - radius * 100));
+    setZFar(qMax(myZFar, distance + radius * 100));
 }
 
 float Camera::distanceFromTarget() const
