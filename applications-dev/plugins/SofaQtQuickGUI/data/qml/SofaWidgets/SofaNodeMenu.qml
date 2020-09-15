@@ -140,6 +140,7 @@ Menu {
     MenuSeparator {}
     MenuItem {
         text: "Delete"
+        enabled: getParentComponent()
         onTriggered: {
             var parent = getParentComponent();
             var item = getComponent();
@@ -149,6 +150,7 @@ Menu {
 
     RenameMenu {
         id: renameMenu
+        enabled: getParentComponent()
     }
 
 
@@ -174,6 +176,7 @@ Menu {
                 SofaApplication.selectedComponent = p.getChild(childName)
             }
         }
+        enabled: getParentComponent()
     }
 
     MenuItem {
