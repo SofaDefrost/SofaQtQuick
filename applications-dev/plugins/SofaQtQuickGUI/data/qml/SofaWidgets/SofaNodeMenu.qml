@@ -145,6 +145,7 @@ Menu {
             var parent = getParentComponent();
             var item = getComponent();
             parent.removeChild(item);
+            SofaApplication.selectedComponent = parent
         }
     }
 
