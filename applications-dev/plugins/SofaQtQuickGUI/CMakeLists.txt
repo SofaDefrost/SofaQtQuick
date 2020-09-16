@@ -218,6 +218,10 @@ set(INSPECTOR_TEMPLATES
     data/config/templates/inspectors/MeshSTLLoader.qml
     )
 
+set(CONVERSION_TEMPLATES
+    data/config/templates/callbacks/BoundingBox2vector_Vec6d_.py
+    )
+
 set(CONFIG_TEMPLATES
     data/config/default.ini
     data/config/classic.ini
@@ -323,10 +327,12 @@ file(COPY     ${SCRIPT_TEMPLATES}     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTO
 file(COPY     ${ASSET_TEMPLATES}      DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/assets)
 file(COPY     ${INSPECTORS_TEMPLATES} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/inspectors)
 file(COPY     ${CONFIG_TEMPLATES}     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/layouts)
+file(COPY     ${CONVERSION_TEMPLATES}     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/callbacks)
 install(FILES ${SCRIPT_TEMPLATES}         DESTINATION bin/config/templates/scripts)
 install(FILES ${ASSET_TEMPLATES}          DESTINATION bin/config/templates/assets)
 install(FILES ${INSPECTORS_TEMPLATES}     DESTINATION bin/config/templates/inspectors)
 install(FILES ${CONFIG_TEMPLATES}         DESTINATION bin/config/templates/layouts)
+install(FILES ${CONVERSION_TEMPLATES}     DESTINATION bin/config/templates/callbacks)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE "-DSOFA_BUILD_SOFAQTQUICKGUI")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "-DQT_QML_DEBUG")

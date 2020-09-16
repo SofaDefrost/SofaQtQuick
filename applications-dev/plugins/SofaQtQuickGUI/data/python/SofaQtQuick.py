@@ -94,6 +94,8 @@ def createTypeConversionEngine(modulename, node, srcData, dstData, srcType, dstT
         dstData.setParent(e.dst)
         node.addObject(e)
     e.addDataConversion(srcData, m.convert)
+    e.addData(name=srcData.getName() + "_code", type="string", group="conversion algos", value=inspect.getsource(m.convert))
+
 
 
 
