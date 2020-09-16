@@ -861,7 +861,7 @@ Rectangle {
                             if (sofaData !== null)
                             {
                                 var data = src.getData(sofaData.getName())
-                                if (data !== null && sofaData.isAutoLink())
+                                if (data !== null && data.isAutoLink())
                                 {
                                     sofaData.setValue(data.value)
                                     sofaData.setParent(data)

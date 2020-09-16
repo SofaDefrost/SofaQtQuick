@@ -133,7 +133,7 @@ ColumnLayout {
 
                     }
 
-                    validator: {
+                    function pickValidator() {
                         if (root.sofaData.properties.subtype === "number")
                         {
                             if (root.sofaData.properties.decimals === 0)
@@ -154,6 +154,8 @@ ColumnLayout {
                             return null
                         }
                     }
+
+                    validator: pickValidator()
 
                     function getText() {
                         if (styleData.column === 0)

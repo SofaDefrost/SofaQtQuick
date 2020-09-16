@@ -204,9 +204,9 @@ bool SofaData::tryLinkingIncompatibleTypes(const QString& path)
     Base* owner = rawData()->getOwner();
     BaseNode* root = nullptr;
     if (owner->toBaseNode() != nullptr)
-        root = owner->toBaseNode()->getRoot();
+        root = owner->toBaseNode()->getFirstParent();
     if (owner->toBaseObject() != nullptr)
-        root = owner->toBaseObject()->getContext()->getRootContext()->toBaseNode();
+        root = owner->toBaseObject()->getContext()->toBaseNode();
     BaseData* srcData = sofaqtquick::helper::findData(root, path);
     if (srcData)
     {

@@ -71,8 +71,10 @@ Base* SofaLinkCompletionModel::getLastValidObject(QString& lastValidLinkPath)
     QStringList strlist = m_linkPath.split("/");
     BaseNode* root = m_relativeRoot->toBaseNode();
     int i = -1;
+    bool lastIsChild = false;
     for (auto s : strlist)
     {
+        lastIsChild = false;
         i++;
 
         if (i == 0 && s == "") // If First character is root
@@ -111,6 +113,7 @@ Base* SofaLinkCompletionModel::getLastValidObject(QString& lastValidLinkPath)
             {
                 lastValidLinkPath.push_back(s);
                 lastValidLinkPath.push_back("/");
+                lastIsChild = true;
                 root = n->getChild(s.toStdString());
             }
             else if (n->getObject(s.toStdString()) != nullptr) {
@@ -124,6 +127,8 @@ Base* SofaLinkCompletionModel::getLastValidObject(QString& lastValidLinkPath)
 
         }
     }
+    if (lastIsChild)
+        lastValidLinkPath.chop(1);
     return root;
 }
 
@@ -176,11 +181,12 @@ void SofaLinkCompletionModel::updateModel()
         }
     }
 
+    QStringList modelText, modelName, modelHelp;
+    QList<bool> modelCanLink;
     if (!m_isComponent)
     {
+
         if (!m_sofaData) return;
-        QStringList modelText, modelName, modelHelp;
-        QList<bool> modelCanLink;
         for (auto data : lastValid->getDataFields())
         {
             if (data->getValueTypeString() == sofaData()->rawData()->getValueTypeString())
@@ -199,14 +205,28 @@ void SofaLinkCompletionModel::updateModel()
             }
         }
         m_modelText += modelText;
-        m_modelName+= modelName;
+        m_modelName += modelName;
         m_modelHelp += modelHelp;
         m_modelCanLink += modelCanLink;
+        modelText.clear();
+        modelName.clear();
+        modelHelp.clear();
+        modelCanLink.clear();
     }
-    m_modelText.erase(std::remove_if(m_modelText.begin(), m_modelText.end(),
-                     [this](const QString &s) { return !s.contains(m_linkPath); }), m_modelText.end());
-
-    std::cout << "Model Updated: " << m_modelText.join("\n").toStdString() << std::endl;;
+    for (int i = 0 ; i < m_modelText.size() ; ++i)
+    {
+        if (m_modelText[i].contains(m_linkPath))
+        {
+            modelText.push_back(m_modelText[i]);
+            modelHelp.push_back(m_modelHelp[i]);
+            modelName.push_back(m_modelName[i]);
+            modelCanLink.push_back(m_modelCanLink[i]);
+        }
+    }
+    m_modelText = modelText;
+    m_modelName = modelName;
+    m_modelHelp = modelHelp;
+    m_modelCanLink = modelCanLink;
 
     endResetModel();
 }
