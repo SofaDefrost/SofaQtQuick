@@ -20,6 +20,7 @@ class GraphSerializer:
             self.write_header(fd)
             self.write_import_statements(fd)
 
+            self.external_deps = []
             self.get_external_dependencies()
 
             if self.is_prefab:
@@ -77,7 +78,6 @@ class GraphSerializer:
 
 
     def get_external_dependencies(self):
-        self.external_deps = []
         """ writes into self.external_deps all dependencies to potential objects external to self.node """
         def getExternalDependencyFromItem(item):
             for d in item.getDataFields():
@@ -214,11 +214,14 @@ class GraphSerializer:
                                 else:
                                     s += ", " + data.getName() + "=" + ( v[v.find('['):v.rfind(']')+1] if "array" in v else v)
         for link in links:
-            if link in self.external_deps and self.is_prefab:
-                s += ", " + link.getName() + "=" + "self." + self.getParameterName(link) + ".value"
-
-            elif link.getLinkedBase() and link.getName() != "context" and link.getName() != "parents" and link.getName() != "child" and link.getName() != "object" and link.getName() != "state" and link.getName() != "visualModel" and link.getName() != "unsorted" and link.getName() != "mapping":
-                s += ", " + link.getName() + "='" + link.getLinkedPath() + "'"
+            isSerialized = False
+            for extDep in self.external_deps:
+                if isinstance(extDep, Sofa.Core.Link) and extDep == link and self.is_prefab:
+                    s += ", " + link.getName() + "=" + "self." + self.getParameterName(link) + ".value"
+                    isSerialized = true
+                    break
+            if not isSerialized and link.getLinkedBase() and link.getName() != "context" and link.getName() != "parents" and link.getName() != "child" and link.getName() != "object" and link.getName() != "state" and link.getName() != "visualModel" and link.getName() != "unsorted" and link.getName() != "mapping":
+                    s += ", " + link.getName() + "='" + link.getLinkedPath() + "'"
 
         entry = Sofa.Core.ObjectFactory.getComponent(obj.getClassName())
         if entry.defaultTemplate != obj.getTemplateName():
@@ -307,7 +310,7 @@ class GraphSerializer:
                 break;
 
         if not hasAPIVersion:
-            self.node.createObject('APIVersion') # creates an APIVersion with SOFA version used in executable
+            self.node.addObject('APIVersion') # creates an APIVersion with SOFA version used in executable
             self.node.APIVersion.level.setPersistent(True)
 
         r_createGraph(self.node)

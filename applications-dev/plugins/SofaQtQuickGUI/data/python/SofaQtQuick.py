@@ -69,7 +69,7 @@ def getPythonModuleContent(moduledir, modulename):
 
     for i in dir(m):
         obj = getattr(m, i)
-        if isScriptContent(m, obj):
+        if isScriptContent(m, obj) and obj.__module__ == m.__name__:
             meta = collectMetaData(obj)
             if meta != None:
                 objects[i] = meta
