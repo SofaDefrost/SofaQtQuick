@@ -247,7 +247,8 @@ bool SofaDataContainerListModel::insertRow(int row, const QModelIndex &parent)
     if (typeinfo->FixedSize())
         return false;
 
-    bool ret = typeinfo->setSize(d->beginEditVoidPtr(), typeinfo->size(d->getValueVoidPtr()) + typeinfo->BaseType()->size());
+    auto size = typeinfo->size(d->getValueVoidPtr()) + typeinfo->BaseType()->size();
+    bool ret = typeinfo->setSize(d->beginEditVoidPtr(), size);
     d->endEditVoidPtr();
     if (ret)
         m_sofaData->rawData()->setPersistent(true);

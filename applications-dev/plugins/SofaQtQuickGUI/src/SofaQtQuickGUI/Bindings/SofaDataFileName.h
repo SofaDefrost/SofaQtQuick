@@ -23,7 +23,7 @@ public:
 
     Q_INVOKABLE bool isDirectory()
     {
-        return dynamic_cast<DataFileName*>(rawData())->getPathType() == 1;
+        return dynamic_cast<DataFileName*>(rawData())->getPathType() == sofa::core::objectmodel::PathType::DIRECTORY;
     }
     Q_INVOKABLE QString getRelativePath()
     {
