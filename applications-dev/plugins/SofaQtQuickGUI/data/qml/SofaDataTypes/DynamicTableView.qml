@@ -125,12 +125,9 @@ ColumnLayout {
                     horizontalAlignment: TextEdit.AlignHCenter
                     verticalAlignment: TextEdit.AlignVCenter
 
-                    DoubleValidator {
-                        id: validator_double
+                    property var validator_double: DoubleValidator {
                     }
-                    IntValidator {
-                        id: validator_int
-
+                    property var validator_int: IntValidator {
                     }
 
                     function pickValidator() {
@@ -142,6 +139,7 @@ ColumnLayout {
                                     validator_int.bottom = 0
                                 return validator_int
                             }
+                            else return validator_double
                         }
                         else if (root.sofaData.properties.subtype === "boolean")
                         {
