@@ -334,6 +334,7 @@ QVector3D SofaViewer::mapToWorld(const QPointF& ssPoint, double z) const
     if(!myCamera)
         return QVector3D();
     QVector3D nsPosition = QVector3D(ssPoint.x() / (double) qFloor(width()) * 2.0 - 1.0, (1.0 - ssPoint.y() / (double) qFloor(height())) * 2.0 - 1.0, z * 2.0 - 1.0);
+
     if(mirroredHorizontally())
         nsPosition.setX(-nsPosition.x());
 
@@ -341,9 +342,11 @@ QVector3D SofaViewer::mapToWorld(const QPointF& ssPoint, double z) const
         nsPosition.setY(-nsPosition.y());
 
     QVector4D nsPosition4 = QVector4D(nsPosition, 1.0);
-
     QVector4D vsPosition = myCamera->projection().inverted() * QVector4D(nsPosition, 1.0);
-    vsPosition /= vsPosition.w();
+    if (vsPosition.w() != 0.0f)
+        vsPosition /= vsPosition.w();
+    else
+        vsPosition /= 0.00001f;
 
     return (myCamera->model() * vsPosition).toVector3D();
 }
@@ -396,11 +399,14 @@ QVector3D SofaViewer::projectOnPlane(const QPointF& ssPoint, const QVector3D& pl
     if(window())
     {
         QVector3D wsOrigin = mapToWorld(ssPoint, 0.0);
-        QVector3D wsDirection = mapToWorld(ssPoint, 1.0) - wsOrigin;
+        auto plop = mapToWorld(ssPoint, 1.0);
+        QVector3D wsDirection = plop - wsOrigin;
 
         QVector3D intersectionPoint;
         if(intersectRayWithPlane(wsOrigin, wsDirection, planeOrigin, planeNormal, intersectionPoint))
+        {
             return intersectionPoint;
+        }
     }
 
     return QVector3D(std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity());
