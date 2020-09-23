@@ -240,11 +240,7 @@ ColumnLayout {
                 TextField {
                     Layout.fillWidth: true
                     placeholderText: "newline"
-
-                    onEditingFinished: {
-                        selectAll()
-                        add_row_btn.clicked()
-                    }
+                    onActiveFocusChanged: if (activeFocus) selectAll()
                 }
             }
 
