@@ -7,7 +7,6 @@ find_package(SofaFramework REQUIRED)
 find_package(SofaOpenglVisual REQUIRED)
 find_package(SofaGeneral REQUIRED)
 find_package(SofaCommon REQUIRED)
-find_package(QmlUI REQUIRED)
 
 find_package(SofaPython3 QUIET)
 if (SofaPython3_FOUND)
@@ -271,7 +270,7 @@ if(WIN32)
     endif()
 endif()
 
-find_package(Qt5 COMPONENTS Core Gui Widgets Quick QuickControls2 Qml WebEngine  Charts REQUIRED PATHS "${SOFA-EXTERNAL_QT5_PATH}")
+find_package(Qt5 COMPONENTS Core Gui Widgets Quick QuickControls2 Qml WebEngine Charts REQUIRED PATHS "${SOFA-EXTERNAL_QT5_PATH}")
 
 
 include_directories(${Qt5Core_INCLUDE_DIRS})
@@ -282,6 +281,7 @@ include_directories(${Qt5Qml_INCLUDE_DIRS})
 include_directories(${Qt5Quick_INCLUDE_DIRS})
 include_directories(${Qt5Quick_INCLUDE_DIRS})
 include_directories(${Qt5QmlLive_INCLUDE_DIRS})
+include_directories(${Qt5WebView_INCLUDE_DIRS})
 
 add_definitions(${Qt5Core_DEFINITIONS})
 add_definitions(${Qt5Gui_DEFINITIONS})
@@ -289,6 +289,7 @@ add_definitions(${Qt5Widgets_DEFINITIONS})
 add_definitions(${Qt5QuickControls2_DEFINITIONS})
 add_definitions(${Qt5Qml_DEFINITIONS})
 add_definitions(${Qt5Quick_DEFINITIONS})
+add_definitions(${Qt5WebView_DEFINITIONS})
 
 #NodeEditor
 find_package (NodeEditor REQUIRED)
@@ -323,23 +324,23 @@ target_include_directories(${PROJECT_NAME} PRIVATE "$<BUILD_INTERFACE:${ASSIMP_I
 
 
 
-file(COPY     ${SCRIPT_TEMPLATES}     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/scripts)
-file(COPY     ${ASSET_TEMPLATES}      DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/assets)
-file(COPY     ${INSPECTORS_TEMPLATES} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/inspectors)
-file(COPY     ${CONFIG_TEMPLATES}     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/layouts)
+file(COPY     ${SCRIPT_TEMPLATES}         DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/scripts)
+file(COPY     ${ASSET_TEMPLATES}          DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/assets)
+file(COPY     ${INSPECTORS_TEMPLATES}     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/inspectors)
+file(COPY     ${CONFIG_TEMPLATES}         DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/layouts)
 file(COPY     ${CONVERSION_TEMPLATES}     DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/templates/callbacks)
-install(FILES ${SCRIPT_TEMPLATES}         DESTINATION bin/config/templates/scripts)
-install(FILES ${ASSET_TEMPLATES}          DESTINATION bin/config/templates/assets)
-install(FILES ${INSPECTORS_TEMPLATES}     DESTINATION bin/config/templates/inspectors)
-install(FILES ${CONFIG_TEMPLATES}         DESTINATION bin/config/templates/layouts)
-install(FILES ${CONVERSION_TEMPLATES}     DESTINATION bin/config/templates/callbacks)
+file(COPY     ${PYTHON_FILES}             DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${SP3_PYTHON_PACKAGES_DIRECTORY})
+
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/data/config DESTINATION ../../bin/)
+# install(FILES ${ASSET_TEMPLATES}          DESTINATION bin/config/templates/assets)
+# install(FILES ${INSPECTORS_TEMPLATES}     DESTINATION bin/config/templates/inspectors)
+# install(FILES ${CONFIG_TEMPLATES}         DESTINATION bin/config/templates/layouts)
+# install(FILES ${CONVERSION_TEMPLATES}     DESTINATION bin/config/templates/callbacks)
+install(FILES ${PYTHON_FILES}             DESTINATION lib/${SP3_PYTHON_PACKAGES_DIRECTORY})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE "-DSOFA_BUILD_SOFAQTQUICKGUI")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "-DQT_QML_DEBUG")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "-DQMLJSDEBUGGER")
-
-##TODO(dmarchal) A virer et remplacer par des vrai resources.
-target_compile_definitions(${PROJECT_NAME} PUBLIC "-DSOFAQTQUICK_DIRECTORY_VIEW=\"${CMAKE_CURRENT_SOURCE_DIR}/data/qml/SofaViews\"")
 
 if(NOT MSVC)
     target_compile_options(${PROJECT_NAME} PUBLIC "$<$<STREQUAL:$<TARGET_PROPERTY:LINKER_LANGUAGE>,CXX>:${CXX11_FLAG}>")
@@ -350,10 +351,16 @@ endif()
 #sofa_install_libraries(${ASSIMP_DLL})
 
 set(SOFAQTQUICKGUI_VERSION 1.0)
-## Install rules for the library; CMake package configurations files
-sofa_generate_package(NAME ${PROJECT_NAME} VERSION ${SOFAQTQUICKGUI_VERSION} TARGETS ${PROJECT_NAME} INCLUDE_INSTALL_DIR ${PROJECT_NAME} INCLUDE_SOURCE_DIR "src/${PROJECT_NAME}")
 
-
+# ## Install rules for the library; CMake package configurations files
+sofa_create_package_with_targets(
+  PACKAGE_NAME ${PROJECT_NAME}
+  PACKAGE_VERSION ${SOFAQTQUICKGUI_VERSION}
+  TARGETS ${PROJECT_NAME} AUTO_SET_TARGET_PROPERTIES
+  INCLUDE_SOURCE_DIR "src"
+  INCLUDE_INSTALL_DIR ${PROJECT_NAME}
+  RELOCATABLE "plugins"
+  )
 
 if( SofaPython3_FOUND )
   add_subdirectory(src/SofaQtQuickGUI/Python)
