@@ -3,11 +3,12 @@ cmake_minimum_required(VERSION 2.8.12)
 find_package(SofaFramework REQUIRED)
 
 add_subdirectory(applications-dev/plugins/QmlUI)
-add_subdirectory(applications-dev/plugins/SofaQtQuickGUI SofaQtQuickGUI)
+add_subdirectory(applications-dev/plugins/SofaQtQuickGUI)
 
 find_package(image QUIET)
 find_package(Compliant QUIET)
-find_package(SofaQtQuickGUI QUIET)
+find_package(QmlUI REQUIRED)
+find_package(SofaQtQuickGUI REQUIRED)
 
 if(image_FOUND AND SofaQtQuickGUI_FOUND)
     message("Adding (auto) image_qtquickgui (image and SofaQtQuickGUI are activated)")

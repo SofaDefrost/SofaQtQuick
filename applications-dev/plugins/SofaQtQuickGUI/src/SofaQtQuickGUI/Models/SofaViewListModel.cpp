@@ -23,6 +23,7 @@ along with sofaqtquick. If not, see <http://www.gnu.org/licenses/>.
 
 #include <QResource>
 #include <QDir>
+#include <qdiriterator.h>
 
 #include "SofaViewListModel.h"
 #include <sofa/helper/logging/Messaging.h>
@@ -48,10 +49,11 @@ void SofaViewListModel::update()
 
     myItems.clear();
 
-    QDir d {SOFAQTQUICK_DIRECTORY_VIEW};
-    for(auto& entry : d.entryInfoList({"*.qml"}))
-    {
-        myItems.append(Item(entry.baseName(), entry.absoluteFilePath()));
+    QDirIterator it(":/SofaViews", QDirIterator::IteratorFlag::Subdirectories);
+    while (it.hasNext()) {
+        auto str = it.next();
+        if (!str.contains("deprecated"))
+            myItems.append(Item(QFileInfo(str).fileName(), QFileInfo(str).filePath()));
     }
 
     endResetModel();

@@ -24,9 +24,15 @@ using  sofa::helper::logging::MessageDispatcher;
 #include <sofa/core/logging/PerComponentLoggingMessageHandler.h>
 using  sofa::helper::logging::MainPerComponentLoggingMessageHandler;
 
+#include <sofa/helper/system/FileRepository.h>
+using sofa::helper::system::PluginRepository;
+#include <sofa/helper/system/FileSystem.h>
+using sofa::helper::system::FileSystem;
+#include <sofa/helper/Utils.h>
+using sofa::helper::Utils;
+
 #include <SofaQtQuickGUI/SofaBaseApplication.h>
 #include <QtWebView/QtWebView>
-#include <runSofa2/runSofa2.h>
 #include <QQuickStyle>
 
 #include <thread>         // std::thread
@@ -96,6 +102,12 @@ int main(int argc, char **argv)
     app.setApplicationName("runSofa2");
     app.setApplicationVersion("v1.0");
 
+    if (FileSystem::isDirectory(Utils::getSofaPathPrefix()+"/plugins"))
+    {
+        std::cout << "PLUGINS PATH: " << Utils::getSofaPathPrefix()+"/plugins" << std::endl;
+        PluginRepository.addFirstPath(Utils::getSofaPathPrefix()+"/plugins");
+    }
+    
     /// common settings for most sofaqtquick applications
     if(!sofaqtquick::SofaBaseApplication::DefaultMain(app, applicationEngine, "qrc:/qml/Main.qml"))
         return -1;
