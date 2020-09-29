@@ -587,8 +587,9 @@ Rectangle {
                     onEditingFinished: {
                         var srcIndex = sceneModel.mapToSource(index)
                         var c = basemodel.getBaseFromIndex(srcIndex)
-                        if (c.rename(text))
+                        if (c.rename(text)) {
                             renaming = false
+                        }
                         else
                             forceFocus()
                     }
@@ -603,6 +604,12 @@ Rectangle {
                 anchors.rightMargin: 40
                 sourceComponent: {
                     return renaming ? renamingTextComponent : textComponent
+                }
+                onLoaded: {
+                    if (!renaming && item.text !== model.name && model && model.name) {
+                        item.text = model.name
+                    }
+
                 }
             }
 

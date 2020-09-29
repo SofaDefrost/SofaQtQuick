@@ -253,8 +253,7 @@ ColumnLayout {
     GroupBox {
         title: "Links"
         visible: linkList.length > 0
-        anchors.left: parent.left
-        anchors.right: parent.right
+        Layout.fillWidth: true
         ColumnLayout {
             anchors.fill: parent
             spacing: 1
@@ -264,7 +263,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     Label {
                         text: modelData
-                        Layout.preferredWidth: parent.width / 3
+                        Layout.preferredWidth: parent.parent.width / 3
                         color: "black"
                         MouseArea {
                             anchors.fill: parent
@@ -314,7 +313,7 @@ ColumnLayout {
                 RowLayout {
                     Layout.fillWidth: true
                     Label {
-                        Layout.preferredWidth: parent.width / 3
+                        Layout.preferredWidth: parent.parent.width / 3
                         elide: Text.ElideRight
                         text: modelData + " :"
                         color: "black"

@@ -128,8 +128,6 @@ void SofaProject::setRootDir(const QUrl& rootDir)
     msg_info() << "Setting root directory to '" << m_rootDir.path().toStdString()<<"'";
     QFileInfo root = QFileInfo(m_rootDir.path());
     scan(root);
-    emit rootDirChanged(m_rootDir);
-    emit rootDirPathChanged(getRootDirPath());
 
     QDir dir(m_rootDir.path());
     QUrl url("file://" + m_rootDir.path() + "/scenes/" + dir.dirName() + ".py");
@@ -141,6 +139,8 @@ void SofaProject::setRootDir(const QUrl& rootDir)
     if (m_currentScene)
         m_currentScene->setSource(url);
 
+    emit rootDirChanged(m_rootDir);
+    emit rootDirPathChanged(getRootDirPath());
 }
 
 const QUrl& SofaProject::getRootDir() { return m_rootDir;  }
@@ -450,7 +450,7 @@ QUrl SofaProject::getSaveFile(QString windowTitle, QString baseDir, int opts, QS
 
 QString SofaProject::createProject(const QUrl& dir)
 {
-    msg_error_when(createProjectTree(dir), "SofaProject::createProject()")
+    msg_error_when(!createProjectTree(dir), "SofaProject::createProject()")
             << "Could not create directory tree for the new project";
 
     if (m_projectSettings != nullptr)
