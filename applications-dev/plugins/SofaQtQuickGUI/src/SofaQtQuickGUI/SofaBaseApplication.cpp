@@ -214,6 +214,7 @@ void SofaBaseApplication::openInEditor(const QString& fullpath, const int lineno
 
     QString editor = settings.value("DefaultEditor").toString();
     QStringList args = settings.value("DefaultEditorParams").toString().replace("${path}", path).replace("${lineno}", line).split(" ");
+    msg_info("runSofa2") << "Opening in editor: " << editor.toStdString() << " " << args.join(' ').toStdString();
     QProcess process;
     int ret = process.startDetached(editor, args);
     if (ret < 0)
