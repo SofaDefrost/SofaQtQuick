@@ -1,4 +1,5 @@
-# This Python file uses the following encoding: utf-8
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 import os
 import sys

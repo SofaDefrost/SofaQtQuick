@@ -634,7 +634,7 @@ bool SofaBaseApplication::createInspector(QString file)
 {
     if (!fileExists(file)) {
         QFile f(file);
-        f.open(QIODevice::WriteOnly);
+        f.open(QIODevice::WriteOnly | QIODevice::Text);
         if (f.isOpen()) {
             f.write("import QtQuick 2.0                              \n"
                     "import CustomInspectorWidgets 1.0               \n"
@@ -656,9 +656,10 @@ bool SofaBaseApplication::createAssetTemplate(QString file)
 {
     if (!fileExists(file)) {
         QFile f(file);
-        f.open(QIODevice::WriteOnly);
+        f.open(QIODevice::WriteOnly | QIODevice::Text);
         if (f.isOpen()) {
             f.write("#!/usr/bin/python3                                                                                                          \n"
+                    "# -*- coding: utf-8 -*-                                                                                                     \n"
                     "                                                                                                                            \n"
                     "import Sofa.Core                                                                                                            \n"
                     "import subprocess                                                                                                           \n"
@@ -689,9 +690,10 @@ bool SofaBaseApplication::createCallback(QString file)
 {
     if (!fileExists(file)) {
         QFile f(file);
-        f.open(QIODevice::WriteOnly);
+        f.open(QIODevice::WriteOnly | QIODevice::Text);
         if (f.isOpen()) {
             f.write("#!/usr/bin/python3\n"
+                    "# -*- coding: utf-8 -*-\n"
                     "\n"
                     "import Sofa.Core\n"
                     "\n"
