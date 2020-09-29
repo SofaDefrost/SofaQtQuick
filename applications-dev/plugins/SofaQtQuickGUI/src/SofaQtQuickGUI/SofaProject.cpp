@@ -423,6 +423,7 @@ QString readScriptTemplate(QString name, QString file) {
         return "";
     }
     QTextStream in(&f);
+    in.setCodec("UTF-8");
     QString s = in.readAll();
     f.close();
     return s.replace("%ComponentName%", name);
@@ -465,6 +466,7 @@ QString SofaProject::createProject(const QUrl& dir)
     if (file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
         QTextStream stream(&file);
+        stream.setCodec("UTF-8");
         stream << scriptContent;
 
         file.close();
@@ -580,7 +582,8 @@ QString SofaProject::createTemplateFile(const QString& directory, const QString&
 
 
         QTextStream stream(&file);
-        stream << scriptContent << endl;
+        stream.setCodec("UTF-8");
+        stream << scriptContent << Qt::endl;
 
         file.close();
         return file.fileName();
@@ -613,7 +616,8 @@ bool SofaProject::createPythonPrefab(QString name, SofaBase* node)
     if (f.open(QIODevice::WriteOnly))
     {
         QTextStream stream(&f);
-        stream << scriptContent << endl;
+        stream.setCodec("UTF-8");
+        stream << scriptContent << Qt::endl;
         f.close();
         py::list args;
         args.append(name.toUtf8().data());

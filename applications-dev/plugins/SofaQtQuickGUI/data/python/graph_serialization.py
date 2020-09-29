@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
 import os
 import Sofa.Core
 
@@ -100,7 +103,9 @@ class GraphSerializer:
 
 
     def write_header(self, fd):
-        fd.write('"""type: SofaContent"""\n')
+        fd.write('#!/usr/bin/python\n')
+        fd.write('# -*- coding: <encoding name> -*-\n')
+        fd.write('"""type: SofaContent"""\n\n')
 
 
     def getRelPath(self, path, relativeTo):
