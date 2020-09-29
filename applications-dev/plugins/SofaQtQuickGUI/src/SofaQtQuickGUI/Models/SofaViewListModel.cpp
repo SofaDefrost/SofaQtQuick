@@ -52,8 +52,8 @@ void SofaViewListModel::update()
     QDirIterator it(":/SofaViews", QDirIterator::IteratorFlag::Subdirectories);
     while (it.hasNext()) {
         auto str = it.next();
-        if (!str.contains("deprecated"))
-            myItems.append(Item(QFileInfo(str).fileName(), QFileInfo(str).filePath()));
+        if (!str.contains("deprecated") && str.endsWith(".qml"))
+            myItems.append(Item(QFileInfo(str).baseName(), QFileInfo(str).filePath()));
     }
 
     endResetModel();
