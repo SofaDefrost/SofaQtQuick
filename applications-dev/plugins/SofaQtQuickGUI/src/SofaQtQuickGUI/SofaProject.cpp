@@ -128,8 +128,6 @@ void SofaProject::setRootDir(const QUrl& rootDir)
     msg_info() << "Setting root directory to '" << m_rootDir.path().toStdString()<<"'";
     QFileInfo root = QFileInfo(m_rootDir.path());
     scan(root);
-    emit rootDirChanged(m_rootDir);
-    emit rootDirPathChanged(getRootDirPath());
 
     QDir dir(m_rootDir.path());
     QUrl url("file://" + m_rootDir.path() + "/scenes/" + dir.dirName() + ".py");
@@ -141,6 +139,8 @@ void SofaProject::setRootDir(const QUrl& rootDir)
     if (m_currentScene)
         m_currentScene->setSource(url);
 
+    emit rootDirChanged(m_rootDir);
+    emit rootDirPathChanged(getRootDirPath());
 }
 
 const QUrl& SofaProject::getRootDir() { return m_rootDir;  }
@@ -423,6 +423,7 @@ QString readScriptTemplate(QString name, QString file) {
         return "";
     }
     QTextStream in(&f);
+    in.setCodec("UTF-8");
     QString s = in.readAll();
     f.close();
     return s.replace("%ComponentName%", name);
@@ -449,7 +450,7 @@ QUrl SofaProject::getSaveFile(QString windowTitle, QString baseDir, int opts, QS
 
 QString SofaProject::createProject(const QUrl& dir)
 {
-    msg_error_when(createProjectTree(dir), "SofaProject::createProject()")
+    msg_error_when(!createProjectTree(dir), "SofaProject::createProject()")
             << "Could not create directory tree for the new project";
 
     if (m_projectSettings != nullptr)
@@ -465,6 +466,7 @@ QString SofaProject::createProject(const QUrl& dir)
     if (file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
         QTextStream stream(&file);
+        stream.setCodec("UTF-8");
         stream << scriptContent;
 
         file.close();
@@ -580,7 +582,8 @@ QString SofaProject::createTemplateFile(const QString& directory, const QString&
 
 
         QTextStream stream(&file);
-        stream << scriptContent << endl;
+        stream.setCodec("UTF-8");
+        stream << scriptContent << Qt::endl;
 
         file.close();
         return file.fileName();
@@ -613,7 +616,8 @@ bool SofaProject::createPythonPrefab(QString name, SofaBase* node)
     if (f.open(QIODevice::WriteOnly))
     {
         QTextStream stream(&f);
-        stream << scriptContent << endl;
+        stream.setCodec("UTF-8");
+        stream << scriptContent << Qt::endl;
         f.close();
         py::list args;
         args.append(name.toUtf8().data());

@@ -214,6 +214,7 @@ void SofaBaseApplication::openInEditor(const QString& fullpath, const int lineno
 
     QString editor = settings.value("DefaultEditor").toString();
     QStringList args = settings.value("DefaultEditorParams").toString().replace("${path}", path).replace("${lineno}", line).split(" ");
+    msg_info("runSofa2") << "Opening in editor: " << editor.toStdString() << " " << args.join(' ').toStdString();
     QProcess process;
     int ret = process.startDetached(editor, args);
     if (ret < 0)
@@ -634,7 +635,7 @@ bool SofaBaseApplication::createInspector(QString file)
 {
     if (!fileExists(file)) {
         QFile f(file);
-        f.open(QIODevice::WriteOnly);
+        f.open(QIODevice::WriteOnly | QIODevice::Text);
         if (f.isOpen()) {
             f.write("import QtQuick 2.0                              \n"
                     "import CustomInspectorWidgets 1.0               \n"
@@ -656,9 +657,10 @@ bool SofaBaseApplication::createAssetTemplate(QString file)
 {
     if (!fileExists(file)) {
         QFile f(file);
-        f.open(QIODevice::WriteOnly);
+        f.open(QIODevice::WriteOnly | QIODevice::Text);
         if (f.isOpen()) {
             f.write("#!/usr/bin/python3                                                                                                          \n"
+                    "# -*- coding: utf-8 -*-                                                                                                     \n"
                     "                                                                                                                            \n"
                     "import Sofa.Core                                                                                                            \n"
                     "import subprocess                                                                                                           \n"
@@ -689,9 +691,10 @@ bool SofaBaseApplication::createCallback(QString file)
 {
     if (!fileExists(file)) {
         QFile f(file);
-        f.open(QIODevice::WriteOnly);
+        f.open(QIODevice::WriteOnly | QIODevice::Text);
         if (f.isOpen()) {
             f.write("#!/usr/bin/python3\n"
+                    "# -*- coding: utf-8 -*-\n"
                     "\n"
                     "import Sofa.Core\n"
                     "\n"

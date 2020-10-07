@@ -356,8 +356,6 @@ void Translate_Manipulator::mouseMoved(const QPointF& mouse, SofaViewer* viewer)
         break;
     };
 
-    std::cout << "YO LO" << translated.x() << std::endl;
-
     // It's easy to overflow when translating along axis that is almost
     // parallel to camera direction....
     for (int i = 0 ; i < 3 ; ++i)

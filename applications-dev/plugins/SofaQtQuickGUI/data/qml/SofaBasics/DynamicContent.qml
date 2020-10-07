@@ -219,7 +219,7 @@ Item {
                         source: "qrc:/icon/subWindow.png"
                     }
                     onClicked: {
-                        windowComponent.createObject(SofaApplication, {"source": "file:///"+listModel.get(comboBox.currentIndex).filePath,
+                        windowComponent.createObject(SofaApplication, {"source": "qrc"+listModel.get(comboBox.currentIndex).filePath,
                                                          "title" : comboBox.currentText });
                     }
 
@@ -301,7 +301,6 @@ Item {
             /// @brief refresh the content "area" of the view with the given name
             function refresh(viewEntry)
             {
-
                 if(!viewEntry)
                     return
 
@@ -318,7 +317,7 @@ Item {
 
 
                 /// Load the component from a qml file.
-                var contentComponent = Qt.createComponent("file://"+source);
+                var contentComponent = Qt.createComponent("qrc"+source);
                 if(contentComponent.status === Component.Error)
                 {
                     ///TODO(dmarchal 28/01/2019) Fix loader.

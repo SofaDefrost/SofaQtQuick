@@ -89,18 +89,19 @@ ColumnLayout {
                         }
                     }
                 }
+
                 Repeater {
                     id: dataRepeater
                     model: dataDict[Object.keys(dataDict)[index]]
                     Layout.fillWidth: true
+
                     RowLayout {
                         id: sofaDataLayout
                         property var sofaData: modelData ? component.getData(modelData) : null
                         Layout.fillWidth: true
 
                         Label {
-                            Layout.minimumWidth: root.labelWidth
-                            Layout.maximumWidth: root.labelWidth
+                            Layout.preferredWidth: parent.parent.width / 3
 
                             text:  modelData
                             color: sofaDataLayout.sofaData.properties.required && !sofaDataLayout.sofaData.properties.set ? "red" : "black"
@@ -171,10 +172,6 @@ ColumnLayout {
                                     }
                                 }
                             }
-                            Component.onCompleted: {
-                                if (width > root.labelWidth)
-                                    root.labelWidth = 150
-                            }
                         }
                         Loader {
                             id: dataItemLoader
@@ -184,11 +181,12 @@ ColumnLayout {
                                     ? "qrc:/SofaBasics/SofaLinkItem.qml"
                                     : "qrc:/SofaDataTypes/SofaDataType_" + sofaDataLayout.sofaData.properties.type + ".qml"
                             onLoaded: {
-                                item.Layout.fillWidth = true
+//                                item.Layout.fillWidth = true
                                 item.sofaData = Qt.binding(function(){return sofaDataLayout.sofaData})
                                 if (sofaDataLayout.sofaData.properties.type === "Material")
                                     item.expanded = false
                             }
+
                             DropArea {
                                 id: dropArea2
                                 anchors.fill: parent
@@ -255,6 +253,7 @@ ColumnLayout {
     GroupBox {
         title: "Links"
         visible: linkList.length > 0
+        Layout.fillWidth: true
         ColumnLayout {
             anchors.fill: parent
             spacing: 1
@@ -264,11 +263,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     Label {
                         text: modelData
-                        Layout.minimumWidth: root.labelWidth
-                        Component.onCompleted: {
-                            if (width > root.labelWidth)
-                                root.labelWidth = 150
-                        }
+                        Layout.preferredWidth: parent.parent.width / 3
                         color: "black"
                         MouseArea {
                             anchors.fill: parent
@@ -309,29 +304,26 @@ ColumnLayout {
     }
     GroupBox {
         title: "Infos"
+        Layout.fillWidth: true
         ColumnLayout {
             id: infosLayout
-            property var labelWidth: 0
-
+            anchors.fill: parent
             Repeater {
                 model: Object.keys(infosDict)
                 RowLayout {
                     Layout.fillWidth: true
                     Label {
-                        Layout.minimumWidth: infosLayout.labelWidth
+                        Layout.preferredWidth: parent.parent.width / 3
                         elide: Text.ElideRight
                         text: modelData + " :"
                         color: "black"
-                        Component.onCompleted: {
-                            if (width > infosLayout.labelWidth)
-                                infosLayout.labelWidth = 150
-                        }
                         MouseArea {
                             anchors.fill: parent
                             onPressed: forceActiveFocus()
                         }
                     }
                     Label {
+                        Layout.fillWidth: true
                         text: infosDict[Object.keys(infosDict)[index]]
                         color: "#333333"
                         elide: Qt.ElideRight
