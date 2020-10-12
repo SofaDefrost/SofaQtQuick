@@ -151,7 +151,7 @@ CameraView {
             if(!keepCamera)
                 viewAll();
         }
-        noCamera.visible = root.camera && root.camera.sofaComponent ? true : false
+        noCamera.visible = root.camera && root.camera.sofaComponent ? false : true
     }
 
 
