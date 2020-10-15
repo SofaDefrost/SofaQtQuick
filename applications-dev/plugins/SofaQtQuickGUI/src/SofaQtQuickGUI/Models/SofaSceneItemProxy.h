@@ -47,7 +47,7 @@ public:
     }
 
     SofaSceneItemProxy(QObject* parent = nullptr);
-    virtual ~SofaSceneItemProxy()override ;
+    virtual ~SofaSceneItemProxy() override ;
 
     /// Inherited from QSortFilterProxyModel by overriding it we can implement
     /// custom filtering rules.

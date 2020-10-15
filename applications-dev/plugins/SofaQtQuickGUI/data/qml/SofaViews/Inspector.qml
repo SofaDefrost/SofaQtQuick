@@ -225,7 +225,15 @@ Item {
         Loader {
             anchors.fill: parent
             id: assetLoaderId
-            source: root.selectedAsset ? root.selectedAsset.getAssetInspectorWidget() : ""
+            source: {
+                if (root.selectedAsset) {
+                    var widget = root.selectedAsset.getAssetInspectorWidget()
+                    if (widget.toString().startsWith("qrc:"))
+                        return widget
+                    return "file://" + widget
+                } else
+                    return ""
+            }
             onLoaded: {
                 if (item) {
                     if (item instanceof DynamicContent_Error)

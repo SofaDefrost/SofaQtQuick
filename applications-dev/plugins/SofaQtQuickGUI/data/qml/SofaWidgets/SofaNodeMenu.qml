@@ -191,7 +191,8 @@ Menu {
                                                          "y" : mouseLoc.mouseY
                                                      });
             popup2.open()
-            popup2.forceActiveFocus()        }
+            popup2.forceActiveFocus()
+        }
         MouseArea
         {
             id: mouseLoc

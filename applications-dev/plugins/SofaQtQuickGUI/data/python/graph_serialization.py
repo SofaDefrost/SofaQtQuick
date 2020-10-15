@@ -50,7 +50,8 @@ class GraphSerializer:
                 fd.write("\n\ndef createScene(root):\n")
                 fd.write('    """ ' + self.help + ' """\n')
                 self.createGraph(fd, created, not_created)
-
+            return True
+        return False
 
     def getParameterName(self, param):
         if isinstance(param, Sofa.Core.Data):
@@ -155,7 +156,12 @@ class GraphSerializer:
                     module_paths.append(dirname)
                 else:
                     r_write_imports(child)
+            for object in node.objects:
+                print(object.getClassName())
+                if object.__module__ != "Sofa.Core":
+                    modules.append(object.__module__)
 
+        print("writing imports")
         r_write_imports(self.node)
         if len(module_paths) != 0:
             fd.write("# all paths:\n")
@@ -253,7 +259,10 @@ class GraphSerializer:
             if isinstance(item, Sofa.Prefab):
                 fd.write(self.indent + parentPath + ".addChild(" + str(item.prefabname.value) + "(" + "name='" + item.getName() + "'" + attributes + "))\n")
             else:
-                fd.write(self.indent + parentPath + ".addObject('" + item.getClassName() + "', name='" + item.getName() + "'" + attributes + ")\n")
+                if item.__module__ == "Sofa.Core":
+                    fd.write(self.indent + parentPath + ".addObject('" + item.getClassName() + "', name='" + item.getName() + "'" + attributes + ")\n")
+                else:
+                    fd.write(self.indent + parentPath + ".addObject(" + item.getClassName() + "(name='" + item.getName() + "'" + attributes + "))\n")
         return item
 
 

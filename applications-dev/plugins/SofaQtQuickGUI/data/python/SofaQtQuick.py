@@ -106,12 +106,13 @@ def createTypeConversionEngine(modulename, node, srcData, dstData, srcType, dstT
 
 def saveAsPythonPrefab(fileName, prefab, name, help):
     serializer = GraphSerializer(fileName)
-    serializer.save(prefab, name, help, True)
+    return serializer.save(prefab, name, help, True)
 
 
 def saveAsPythonScene(fileName, node):
     serializer = GraphSerializer(fileName)
-    serializer.save(node)
+    return serializer.save(node)
+
 
 
 

@@ -67,6 +67,12 @@ SofaSceneItemProxy::~SofaSceneItemProxy()
 
 void SofaSceneItemProxy::flipComponentVisibility(const QModelIndex index)
 {
+    if (sourceModel() == nullptr)
+    {
+        msg_error("SofaSceneItemProxy") << "error with proxy model: no source model";
+        return;
+    }
+
     QModelIndex srcindex = mapToSource(index);
     if(!m_filters.contains(srcindex))
        m_filters.insert(srcindex, false);
