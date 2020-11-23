@@ -21,7 +21,7 @@ This project is a plugin and an executable GUI for SOFA based on the QtQuick lib
  </tr>
  <tr>
     <td>Custom UI<a href="https://www.youtube.com/watch?v=9aTIHwENGaM"><img src="https://img.youtube.com/vi/9aTIHwENGaM/maxresdefault.jpg"></a> </td>
-    <td>: <a href="https://www.youtube.com/watch?v=btkhY6d7hpY"><img src="https://img.youtube.com/vi/btkhY6d7hpY/maxresdefault.jpg"></a> </td>
+    <td>Application specific UI <a href="https://www.youtube.com/watch?v=btkhY6d7hpY"><img src="https://img.youtube.com/vi/btkhY6d7hpY/maxresdefault.jpg"></a> </td>
  </tr>
 </table>
 
