@@ -13,7 +13,7 @@ This project is a plugin and an executable GUI for SOFA based on the QtQuick lib
 <table>
   <tr>
     <td>Scene editting <a href="https://www.youtube.com/watch?v=IGsgy_pQhb8"><img src="https://img.youtube.com/vi/IGsgy_pQhb8/maxresdefault.jpg"></a> </td>
-    <td>Modelling: <a href="https://www.youtube.com/watch?v=9nY6zj3iXXw"><img src="https://img.youtube.com/vi/9nY6zj3iXXw/maxresdefault.jpg"></a> </td>
+    <td>Modelling: <a href="https://www.youtube.com/watch?v=9nY6zj3iXXw"><img src="https://img.youtube.com/vi/9nY6zj3iXXw/0.jpg"></a> </td>
  </tr>
  <tr>
     <td>Prefab <a href="https://www.youtube.com/watch?v=K_buPD9uhos"><img src="https://img.youtube.com/vi/K_buPD9uhos/maxresdefault.jpg"></a> </td>
